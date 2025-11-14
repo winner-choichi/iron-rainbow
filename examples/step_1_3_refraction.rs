@@ -101,12 +101,12 @@ async fn main() {
         test_cases.iter().zip(results.iter())
     {
         // 1. Draw INCIDENT ray (thick orange)
-        renderer.draw_thick_line(
+        renderer.draw_line(
             ray.origin[0],
             ray.origin[1],
             int_point[0],
             int_point[1],
-            0.08,
+            // 0.08,
             incident_color,
         );
 
@@ -131,12 +131,12 @@ async fn main() {
             let refl = result.reflected_direction();
 
             // Thick pink for TIR
-            renderer.draw_thick_line(
+            renderer.draw_line(
                 int_point[0],
                 int_point[1],
                 int_point[0] + refl[0] * 2.5,
                 int_point[1] + refl[1] * 2.5,
-                0.08,
+                // 0.08,
                 tir_color,
             );
         } else {
@@ -144,12 +144,12 @@ async fn main() {
             println!("{}° ({}): → refracted", angle_deg, mode);
 
             // Thick cyan for refraction
-            renderer.draw_thick_line(
+            renderer.draw_line(
                 int_point[0],
                 int_point[1],
                 int_point[0] + refr[0] * 2.5,
                 int_point[1] + refr[1] * 2.5,
-                0.08,
+                // 0.08,
                 refracted_color,
             );
         }
