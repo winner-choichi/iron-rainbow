@@ -12,5 +12,9 @@ pub mod visualization;
 // Re-export commonly used types
 pub use gpu::GpuContext;
 pub use geometry::{Ray, Circle};
-pub use physics::{IntersectionResult, compute_intersections, RefractionInput, RefractionResult, compute_refractions};
+pub use physics::{
+    IntersectionResult, compute_intersections,
+    RefractionInput, RefractionResult, compute_refractions,
+    PathTraceInput, PathTraceResult, EventType, compute_path_traces,
+};
 pub use visualization::Renderer2D;
