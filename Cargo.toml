@@ -1,0 +1,16 @@
+[package]
+name = "iron-rainbow"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wgpu = "22.1"
+pollster = "0.3"
+image = "0.25"
+bytemuck = { version = "1.14", features = ["derive"] }
+futures-intrusive = "0.5"
+tokio = { version = "1", features = ["full"] }
+
+[dev-dependencies]
+# For visualization examples
+imageproc = "0.25"
