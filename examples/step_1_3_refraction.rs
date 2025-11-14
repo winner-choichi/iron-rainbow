@@ -100,7 +100,7 @@ async fn main() {
     for ((ray, int_point, _normal, _, _, angle_deg, mode), result) in
         test_cases.iter().zip(results.iter())
     {
-        // 1. Draw INCIDENT ray (thick orange)
+        // 1. Draw INCIDENT ray (orange)
         renderer.draw_line(
             ray.origin[0],
             ray.origin[1],

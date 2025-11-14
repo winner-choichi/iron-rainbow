@@ -16,5 +16,7 @@ pub use physics::{
     IntersectionResult, compute_intersections,
     RefractionInput, RefractionResult, compute_refractions,
     PathTraceInput, PathTraceResult, EventType, compute_path_traces,
+    DispersionModel, CauchyModel, SellmeierModel, DrudeModel,
+    Wavelength, RefractiveIndex, AbsorptionCoefficient, wavelengths,
 };
 pub use visualization::Renderer2D;
