@@ -18,5 +18,6 @@ pub use physics::{
     PathTraceInput, PathTraceResult, EventType, compute_path_traces,
     DispersionModel, CauchyModel, SellmeierModel, DrudeModel,
     Wavelength, RefractiveIndex, AbsorptionCoefficient, wavelengths,
+    beer_lambert, transmittance, absorbance, path_length_2d,
 };
 pub use visualization::Renderer2D;
