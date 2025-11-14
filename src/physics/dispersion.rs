@@ -105,33 +105,79 @@ impl DispersionModel for SellmeierModel {
     }
 }
 
-/// Drude model for metals (simplified)
-/// For future implementation of steel dispersion
+/// Drude model for metals
+/// Calculates complex refractive index: n + ik
+///
+/// ε(ω) = 1 - ωₚ²/(ω² + iγω)
+/// n + ik = √ε(ω)
 pub struct DrudeModel {
     pub plasma_frequency: f32,  // ωₚ (rad/s)
     pub damping: f32,           // γ (rad/s)
 }
 
 impl DrudeModel {
-    /// Placeholder for steel (to be refined with real data)
-    pub fn steel_placeholder() -> Self {
+    /// Steel/Iron parameters (approximate)
+    /// Based on typical metal behavior
+    pub fn steel() -> Self {
         Self {
-            plasma_frequency: 1.0e16,  // ~UV region
-            damping: 1.0e14,
+            plasma_frequency: 1.37e16,  // ~1.37 × 10^16 rad/s (UV region, ~137 nm)
+            damping: 4.0e13,            // ~4 × 10^13 rad/s (visible damping)
         }
+    }
+
+    /// Calculate complex refractive index at given wavelength
+    /// Returns (n, k) where n + ik is the complex index
+    pub fn complex_index(&self, wavelength_nm: Wavelength) -> (f32, f32) {
+        // Convert wavelength to angular frequency
+        // ω = 2πc/λ
+        let c = 2.998e17;  // Speed of light in nm/s
+        let omega = 2.0 * std::f32::consts::PI * c / wavelength_nm;
+
+        let omega_p = self.plasma_frequency;
+        let gamma = self.damping;
+
+        // Normalize frequencies to avoid overflow
+        // Let x = ω/ωₚ and g = γ/ωₚ
+        let x = omega / omega_p;
+        let g = gamma / omega_p;
+
+        // Drude model: ε(ω) = 1 - 1/(x² + igx)
+        // Multiply by conjugate: ε(ω) = 1 - (x² - igx)/(x⁴ + g²x²)
+        //                             = 1 - x²/(x⁴ + g²x²) + i·gx/(x⁴ + g²x²)
+        //                             = 1 - 1/(x² + g²) + i·g/(x(x² + g²))
+
+        let x2 = x * x;
+        let g2 = g * g;
+        let denom = x2 + g2;
+
+        // Real and imaginary parts of permittivity
+        let eps1 = 1.0 - 1.0 / denom;
+        let eps2 = g / (x * denom);
+
+        // Complex square root: √(ε₁ + iε₂)
+        // n = √((|ε| + ε₁)/2)
+        // k = √((|ε| - ε₁)/2)
+        let eps_mag = (eps1 * eps1 + eps2 * eps2).sqrt();
+
+        let n = ((eps_mag + eps1) / 2.0).max(0.0).sqrt();
+        let k = ((eps_mag - eps1) / 2.0).max(0.0).sqrt();
+
+        (n, k)
     }
 }
 
 impl DispersionModel for DrudeModel {
-    fn refractive_index(&self, _wavelength_nm: Wavelength) -> RefractiveIndex {
-        // Simplified - needs proper complex calculation
-        // For now, return a constant
-        1.5
+    fn refractive_index(&self, wavelength_nm: Wavelength) -> RefractiveIndex {
+        let (n, _k) = self.complex_index(wavelength_nm);
+        n
     }
 
-    fn absorption_coefficient(&self, _wavelength_nm: Wavelength) -> AbsorptionCoefficient {
-        // Metals have high absorption in visible
-        1.0
+    fn absorption_coefficient(&self, wavelength_nm: Wavelength) -> AbsorptionCoefficient {
+        let (_n, k) = self.complex_index(wavelength_nm);
+        // Convert extinction coefficient k to absorption coefficient α
+        // α = 4πk/λ
+        let lambda_um = wavelength_nm / 1000.0;
+        4.0 * std::f32::consts::PI * k / lambda_um
     }
 }
 
@@ -139,6 +185,13 @@ impl DispersionModel for DrudeModel {
 pub mod wavelengths {
     use super::Wavelength;
 
+    // Ultraviolet spectrum (for steel rainbow)
+    pub const DEEP_UV: Wavelength = 100.0;     // nm (extreme UV)
+    pub const UV_C: Wavelength = 200.0;        // nm (far UV)
+    pub const UV_B: Wavelength = 300.0;        // nm (mid UV)
+    pub const UV_A: Wavelength = 380.0;        // nm (near UV)
+
+    // Visible spectrum
     pub const VIOLET: Wavelength = 400.0;  // nm
     pub const BLUE: Wavelength = 450.0;
     pub const CYAN: Wavelength = 500.0;
@@ -147,12 +200,48 @@ pub mod wavelengths {
     pub const ORANGE: Wavelength = 600.0;
     pub const RED: Wavelength = 700.0;
 
+    // Infrared spectrum
+    pub const NEAR_IR: Wavelength = 1000.0;    // 1 μm
+    pub const MID_IR: Wavelength = 5000.0;     // 5 μm
+    pub const FAR_IR: Wavelength = 10000.0;    // 10 μm
+
+    /// Sample UV spectrum (100-400nm) - Steel rainbow region!
+    /// This is where steel becomes transparent
+    pub fn sample_uv(num_samples: usize) -> Vec<Wavelength> {
+        (0..num_samples)
+            .map(|i| {
+                let t = i as f32 / (num_samples - 1) as f32;
+                DEEP_UV + t * (VIOLET - DEEP_UV)
+            })
+            .collect()
+    }
+
     /// Sample visible spectrum with given number of points
     pub fn sample_visible(num_samples: usize) -> Vec<Wavelength> {
         (0..num_samples)
             .map(|i| {
                 let t = i as f32 / (num_samples - 1) as f32;
                 VIOLET + t * (RED - VIOLET)
+            })
+            .collect()
+    }
+
+    /// Sample visible + infrared spectrum (400nm - 10μm)
+    pub fn sample_visible_to_ir(num_samples: usize) -> Vec<Wavelength> {
+        (0..num_samples)
+            .map(|i| {
+                let t = i as f32 / (num_samples - 1) as f32;
+                VIOLET + t * (FAR_IR - VIOLET)
+            })
+            .collect()
+    }
+
+    /// Sample infrared only (1-10 μm)
+    pub fn sample_infrared(num_samples: usize) -> Vec<Wavelength> {
+        (0..num_samples)
+            .map(|i| {
+                let t = i as f32 / (num_samples - 1) as f32;
+                NEAR_IR + t * (FAR_IR - NEAR_IR)
             })
             .collect()
     }
