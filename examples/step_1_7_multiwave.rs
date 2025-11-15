@@ -5,7 +5,7 @@
 /// - Droplet size: 30 nm (optimal for UV transmission)
 /// - Impact parameter: 0.6 (balance between path length and exit angle)
 ///
-/// Run with: cargo run --example step_1_7_multiwave_v2
+/// Run with: cargo run --example step_1_7_multiwave
 
 use iron_rainbow::{
     path_length_2d, Circle, DrudeModel,
@@ -139,7 +139,7 @@ async fn main() {
     }
 
     // Enhanced Visualization
-    let mut renderer = Renderer2D::new(1920, 1080, 10.0);
+    let mut renderer = Renderer2D::new(1920, 1080, 15.0);
 
     // Background
     let bg_color = Rgb([250, 252, 255]);
