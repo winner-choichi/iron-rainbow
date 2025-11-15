@@ -292,11 +292,237 @@ impl Renderer2D {
         }
     }
 
-    /// Draw text (simple bitmap font - just draws rectangles for now)
-    /// For production, would use imageproc or rusttype
-    pub fn draw_label(&mut self, x: f32, y: f32, _text: &str, color: Rgb<u8>) {
-        // Simple marker for now - would integrate proper text rendering
-        self.draw_filled_circle(x, y, 0.08, color);
+    /// Draw text using a simple bitmap font
+    pub fn draw_text(&mut self, x: f32, y: f32, text: &str, size: f32, color: Rgb<u8>) {
+        let mut cursor_x = x;
+        for ch in text.chars() {
+            self.draw_char(cursor_x, y, ch, size, color);
+            cursor_x += size * 0.7; // Character spacing
+        }
+    }
+
+    /// Draw a single character using bitmap font
+    fn draw_char(&mut self, x: f32, y: f32, ch: char, size: f32, color: Rgb<u8>) {
+        let pixel_size = size / 7.0;
+
+        // 5x7 bitmap font patterns (1 = filled, 0 = empty)
+        let pattern = match ch {
+            '0' => vec![
+                0b01110,
+                0b10001,
+                0b10011,
+                0b10101,
+                0b11001,
+                0b10001,
+                0b01110,
+            ],
+            '1' => vec![
+                0b00100,
+                0b01100,
+                0b00100,
+                0b00100,
+                0b00100,
+                0b00100,
+                0b01110,
+            ],
+            '2' => vec![
+                0b01110,
+                0b10001,
+                0b00001,
+                0b00010,
+                0b00100,
+                0b01000,
+                0b11111,
+            ],
+            '3' => vec![
+                0b11110,
+                0b00001,
+                0b00001,
+                0b01110,
+                0b00001,
+                0b00001,
+                0b11110,
+            ],
+            '4' => vec![
+                0b00010,
+                0b00110,
+                0b01010,
+                0b10010,
+                0b11111,
+                0b00010,
+                0b00010,
+            ],
+            '5' => vec![
+                0b11111,
+                0b10000,
+                0b11110,
+                0b00001,
+                0b00001,
+                0b10001,
+                0b01110,
+            ],
+            '6' => vec![
+                0b00110,
+                0b01000,
+                0b10000,
+                0b11110,
+                0b10001,
+                0b10001,
+                0b01110,
+            ],
+            '7' => vec![
+                0b11111,
+                0b00001,
+                0b00010,
+                0b00100,
+                0b01000,
+                0b01000,
+                0b01000,
+            ],
+            '8' => vec![
+                0b01110,
+                0b10001,
+                0b10001,
+                0b01110,
+                0b10001,
+                0b10001,
+                0b01110,
+            ],
+            '9' => vec![
+                0b01110,
+                0b10001,
+                0b10001,
+                0b01111,
+                0b00001,
+                0b00010,
+                0b01100,
+            ],
+            '.' => vec![
+                0b00000,
+                0b00000,
+                0b00000,
+                0b00000,
+                0b00000,
+                0b01100,
+                0b01100,
+            ],
+            '-' => vec![
+                0b00000,
+                0b00000,
+                0b00000,
+                0b11111,
+                0b00000,
+                0b00000,
+                0b00000,
+            ],
+            '+' => vec![
+                0b00000,
+                0b00100,
+                0b00100,
+                0b11111,
+                0b00100,
+                0b00100,
+                0b00000,
+            ],
+            '°' => vec![
+                0b01100,
+                0b10010,
+                0b10010,
+                0b01100,
+                0b00000,
+                0b00000,
+                0b00000,
+            ],
+            'λ' | 'l' => vec![
+                0b10000,
+                0b01000,
+                0b00100,
+                0b00100,
+                0b01010,
+                0b01010,
+                0b10001,
+            ],
+            'n' | 'N' => vec![
+                0b10001,
+                0b11001,
+                0b10101,
+                0b10101,
+                0b10011,
+                0b10001,
+                0b10001,
+            ],
+            'k' | 'K' => vec![
+                0b10001,
+                0b10010,
+                0b10100,
+                0b11000,
+                0b10100,
+                0b10010,
+                0b10001,
+            ],
+            'T' => vec![
+                0b11111,
+                0b00100,
+                0b00100,
+                0b00100,
+                0b00100,
+                0b00100,
+                0b00100,
+            ],
+            '%' => vec![
+                0b11001,
+                0b11010,
+                0b00010,
+                0b00100,
+                0b01000,
+                0b01011,
+                0b10011,
+            ],
+            '(' => vec![
+                0b00010,
+                0b00100,
+                0b01000,
+                0b01000,
+                0b01000,
+                0b00100,
+                0b00010,
+            ],
+            ')' => vec![
+                0b01000,
+                0b00100,
+                0b00010,
+                0b00010,
+                0b00010,
+                0b00100,
+                0b01000,
+            ],
+            ' ' => vec![0; 7],
+            _ => vec![
+                0b11111,
+                0b10001,
+                0b10001,
+                0b10001,
+                0b10001,
+                0b10001,
+                0b11111,
+            ], // Default: box
+        };
+
+        // Draw pixels
+        for (row, bits) in pattern.iter().enumerate() {
+            for col in 0..5 {
+                if (bits >> (4 - col)) & 1 == 1 {
+                    let px = x + col as f32 * pixel_size;
+                    let py = y - row as f32 * pixel_size;
+                    self.fill_rect(px, py, pixel_size * 0.9, pixel_size * 0.9, color);
+                }
+            }
+        }
+    }
+
+    /// Draw text label (deprecated, use draw_text instead)
+    pub fn draw_label(&mut self, x: f32, y: f32, text: &str, color: Rgb<u8>) {
+        self.draw_text(x, y, text, 0.3, color);
     }
 }
 

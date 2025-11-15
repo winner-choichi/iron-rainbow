@@ -139,19 +139,51 @@ fn main() {
         renderer.draw_thick_line(x1, y1, x2, y2, 0.05, n_color);
     }
 
-    // Mark wavelength regions
-    let markers = [
-        (100.0, "100nm"),   // Deep UV
-        (137.0, "λₚ"),      // Plasma wavelength
-        (200.0, "200nm"),   // UV-C
-        (300.0, "300nm"),   // UV-B
-        (380.0, "380nm"),   // UV-A
+    // Title
+    let title_color = Rgb([40, 40, 40]);
+    renderer.draw_text(-4.0, 4.8, "Drude-Lorentz Model: Steel Optical Constants", 0.4, title_color);
+
+    // Axis labels
+    renderer.draw_text(-4.0, y_min - 0.8, "Wavelength (nm)", 0.35, axis_color);
+    renderer.draw_text(x_min - 1.2, 4.5, "n k", 0.35, axis_color);
+
+    // Mark wavelength ticks and labels
+    let wl_markers = [
+        (100.0, "100"),
+        (150.0, "150"),
+        (200.0, "200"),
+        (250.0, "250"),
+        (300.0, "300"),
+        (350.0, "350"),
     ];
 
-    for (wl, _label) in markers.iter() {
-        let x = wl_to_x(*wl);
-        renderer.draw_thick_line(x, y_min, x, y_min + 0.3, 0.03, Rgb([0, 0, 0]));
+    for (wl, label) in wl_markers.iter() {
+        if *wl >= wavelengths::DEEP_UV && *wl <= wavelengths::VIOLET {
+            let x = wl_to_x(*wl);
+            renderer.draw_thick_line(x, y_min, x, y_min + 0.2, 0.03, axis_color);
+            renderer.draw_text(x - 0.3, y_min - 0.5, label, 0.25, axis_color);
+        }
     }
+
+    // Mark value ticks and labels on y-axis
+    let n_k_max = max_k.max(max_n);
+    let y_step = if n_k_max > 2.0 { 0.5 } else { 0.2 };
+    let mut y_val = 0.0;
+    while y_val <= n_k_max + 0.1 {
+        let y = val_to_y(y_val);
+        if y >= y_min && y <= y_max {
+            renderer.draw_thick_line(x_min, y, x_min + 0.2, y, 0.03, axis_color);
+            let label = format!("{:.1}", y_val);
+            renderer.draw_text(x_min - 0.6, y - 0.1, &label, 0.25, axis_color);
+        }
+        y_val += y_step;
+    }
+
+    // Legend
+    renderer.draw_thick_line(3.0, 4.0, 3.5, 4.0, 0.05, n_color);
+    renderer.draw_text(3.7, 4.0, "n", 0.3, n_color);
+    renderer.draw_thick_line(3.0, 3.5, 3.5, 3.5, 0.05, k_color);
+    renderer.draw_text(3.7, 3.5, "k", 0.3, k_color);
 
     let output_path = "output/step_1_5_drude_steel.png";
     renderer.save(output_path).expect("Failed to save");

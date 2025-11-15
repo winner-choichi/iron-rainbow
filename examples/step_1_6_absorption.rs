@@ -185,19 +185,33 @@ async fn main() {
         renderer.draw_thick_line(x1, y1, x2, y2, 0.05, curve_color);
     }
 
-    // Mark wavelengths (UV range)
-    let markers = [100.0, 150.0, 200.0, 250.0, 300.0, 350.0, 400.0];
-    for wl in markers.iter() {
+    // Title
+    let title_color = Rgb([40, 40, 40]);
+    renderer.draw_text(-3.5, 4.8, "Beer-Lambert Absorption (UV Steel)", 0.4, title_color);
+
+    // Axis labels
+    renderer.draw_text(-3.5, y_min - 0.8, "Wavelength (nm)", 0.35, axis_color);
+    renderer.draw_text(x_min - 1.8, 4.5, "Transmittance", 0.35, axis_color);
+
+    // Mark wavelengths (UV range) with labels
+    let wl_markers = [100.0, 150.0, 200.0, 250.0, 300.0, 350.0, 400.0];
+    for wl in wl_markers.iter() {
         let x = wl_to_x(*wl);
-        renderer.draw_thick_line(x, y_min, x, y_min + 0.2, 0.03, Rgb([0, 0, 0]));
+        renderer.draw_thick_line(x, y_min, x, y_min + 0.2, 0.03, axis_color);
+        let label = format!("{:.0}", wl);
+        renderer.draw_text(x - 0.3, y_min - 0.5, &label, 0.25, axis_color);
     }
 
-    // Mark transmittance values (log scale: 10^-10 to 10^0)
-    for i in 0..11 {
-        let log_val = -10.0 + i as f32;  // -10, -9, ..., 0
-        let t = 10.0_f32.powf(log_val);
+    // Mark transmittance values (log scale: 10^-10 to 10^0) with labels
+    let log_markers = [-10, -8, -6, -4, -2, 0];
+    for log_val in log_markers.iter() {
+        let t = 10.0_f32.powi(*log_val);
         let y = t_to_y(t);
-        renderer.draw_thick_line(x_min, y, x_min + 0.2, y, 0.03, Rgb([0, 0, 0]));
+        if y >= y_min && y <= y_max {
+            renderer.draw_thick_line(x_min, y, x_min + 0.2, y, 0.03, axis_color);
+            let label = format!("1.0-{}", -log_val);
+            renderer.draw_text(x_min - 1.0, y - 0.1, &label, 0.22, axis_color);
+        }
     }
 
     let output_path = "output/step_1_6_absorption.png";
