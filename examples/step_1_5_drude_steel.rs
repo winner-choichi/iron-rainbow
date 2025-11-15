@@ -45,10 +45,10 @@ fn main() {
     // Print key wavelengths
     println!("Complex refractive index (n + ik):");
     println!("\nUV spectrum:");
-    let test_uv = [100.0, 137.0, 200.0, 300.0, 380.0];
+    let test_uv = [100.0, 137.0, 188.0, 192.0, 199.0, 200.0, 300.0, 380.0];
     for wl in test_uv.iter() {
         let (n, k) = steel.complex_index(*wl);
-        let region = if *wl < 200.0 { "Deep UV" }
+        let region = if *wl < 180.0 { "Deep UV" }
                     else if *wl < 280.0 { "UV-C" }
                     else if *wl < 315.0 { "UV-B" }
                     else { "UV-A" };

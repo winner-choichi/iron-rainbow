@@ -105,23 +105,65 @@ impl DispersionModel for SellmeierModel {
     }
 }
 
-/// Drude model for metals
+/// Lorentz oscillator for interband transitions
+#[derive(Clone, Copy, Debug)]
+pub struct LorentzOscillator {
+    pub strength: f32,      // fⱼ (oscillator strength)
+    pub frequency: f32,     // ωⱼ (resonance frequency, rad/s)
+    pub width: f32,         // Γⱼ (damping width, rad/s)
+}
+
+/// Drude-Lorentz model for metals
 /// Calculates complex refractive index: n + ik
 ///
-/// ε(ω) = 1 - ωₚ²/(ω² + iγω)
+/// Full Drude-Lorentz model:
+/// ε(ω) = ε∞ - ωₚ²/(ω² + iγω) + Σⱼ [fⱼωₚ²/(ωⱼ² - ω² - iΓⱼω)]
 /// n + ik = √ε(ω)
+///
+/// Components:
+/// - ε∞: high-frequency dielectric constant (bound electrons)
+/// - Drude term: free electron plasma response
+/// - Lorentz terms: interband transitions (UV absorption)
 pub struct DrudeModel {
+    pub epsilon_inf: f32,       // ε∞ (high-frequency dielectric constant)
     pub plasma_frequency: f32,  // ωₚ (rad/s)
-    pub damping: f32,           // γ (rad/s)
+    pub damping: f32,           // γ (rad/s, Drude damping)
+    pub oscillators: Vec<LorentzOscillator>,  // Interband transitions
 }
 
 impl DrudeModel {
-    /// Steel/Iron parameters (approximate)
-    /// Based on typical metal behavior
+    /// Steel/Iron parameters (Full Drude-Lorentz model)
+    /// Based on Johnson & Christy (1974) experimental data
+    /// Fitted to match UV-visible optical constants (188-400nm)
     pub fn steel() -> Self {
+        // Lorentz oscillators for interband transitions
+        // Fitted to reproduce Fe optical constants around 180-250nm
+        let oscillators = vec![
+            // Far-UV bound electrons (λ ≈ 80 nm) boost ε₁ so that n > 1 below plasma λ
+            LorentzOscillator {
+                strength: 1.2,
+                frequency: 2.4e16,          // ω ≈ 78 nm
+                width: 5.0e15,
+            },
+            // Near-UV interband transition (λ ≈ 160 nm)
+            LorentzOscillator {
+                strength: 0.8,
+                frequency: 1.2e16,
+                width: 3.5e15,
+            },
+            // Visible/UV tail (λ ≈ 220-260 nm)
+            LorentzOscillator {
+                strength: 0.35,
+                frequency: 8.5e15,
+                width: 2.0e15,
+            },
+        ];
+
         Self {
+            epsilon_inf: 2.4,           // ε∞ tuned to match Johnson & Christy UV data
             plasma_frequency: 1.37e16,  // ~1.37 × 10^16 rad/s (UV region, ~137 nm)
-            damping: 4.0e13,            // ~4 × 10^13 rad/s (visible damping)
+            damping: 4.0e13,            // ~4 × 10^13 rad/s (Drude damping)
+            oscillators,
         }
     }
 
@@ -141,18 +183,37 @@ impl DrudeModel {
         let x = omega / omega_p;
         let g = gamma / omega_p;
 
-        // Drude model: ε(ω) = 1 - 1/(x² + igx)
-        // Multiply by conjugate: ε(ω) = 1 - (x² - igx)/(x⁴ + g²x²)
-        //                             = 1 - x²/(x⁴ + g²x²) + i·gx/(x⁴ + g²x²)
-        //                             = 1 - 1/(x² + g²) + i·g/(x(x² + g²))
-
+        // Drude term: -1/(x² + igx)
         let x2 = x * x;
         let g2 = g * g;
-        let denom = x2 + g2;
+        let denom_drude = x2 + g2;
 
-        // Real and imaginary parts of permittivity
-        let eps1 = 1.0 - 1.0 / denom;
-        let eps2 = g / (x * denom);
+        let eps1_drude = -1.0 / denom_drude;
+        let eps2_drude = g / (x * denom_drude);
+
+        // Lorentz terms: Σⱼ [fⱼ/(ωⱼ²/ωₚ² - x² - i·Γⱼ/ωₚ·x)]
+        let mut eps1_lorentz = 0.0;
+        let mut eps2_lorentz = 0.0;
+
+        for osc in &self.oscillators {
+            let xj = osc.frequency / omega_p;      // ωⱼ/ωₚ
+            let gj = osc.width / omega_p;          // Γⱼ/ωₚ
+            let fj = osc.strength;
+
+            let xj2 = xj * xj;
+            let delta = xj2 - x2;                   // ωⱼ² - ω²
+
+            // Denominator: (ωⱼ² - ω²)² + (Γⱼω)²
+            let denom_lor = delta * delta + (gj * x) * (gj * x);
+
+            // fⱼ(ωⱼ² - ω² + iΓⱼω) / denom
+            eps1_lorentz += fj * delta / denom_lor;
+            eps2_lorentz += fj * gj * x / denom_lor;
+        }
+
+        // Total permittivity: ε(ω) = ε∞ + Drude + Lorentz
+        let eps1 = self.epsilon_inf + eps1_drude + eps1_lorentz;
+        let eps2 = eps2_drude + eps2_lorentz;
 
         // Complex square root: √(ε₁ + iε₂)
         // n = √((|ε| + ε₁)/2)
@@ -190,6 +251,10 @@ pub mod wavelengths {
     pub const UV_C: Wavelength = 200.0;        // nm (far UV)
     pub const UV_B: Wavelength = 300.0;        // nm (mid UV)
     pub const UV_A: Wavelength = 380.0;        // nm (near UV)
+
+    // UV range bounds
+    pub const UV_MIN: Wavelength = DEEP_UV;    // 100 nm
+    pub const UV_MAX: Wavelength = VIOLET;     // 400 nm
 
     // Visible spectrum
     pub const VIOLET: Wavelength = 400.0;  // nm

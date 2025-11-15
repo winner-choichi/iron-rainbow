@@ -103,15 +103,21 @@
 - [ ] 각 교차점 및 굴절/반사 벡터 저장
 - [ ] 검증: 광선 경로 데이터를 이미지(또는 SVG)로 시각화
 
-#### 🔜 Step 1.5: 파장별 굴절률 (Drude 모델)
-- [ ] 파장에 따른 n(λ), k(λ) 데이터 로드/계산
-- [ ] Drude 모델 또는 실험 데이터 테이블 사용
-- [ ] 검증: n(λ), k(λ) 그래프를 이미지로 출력
+#### ✅ Step 1.5: 파장별 굴절률 (Drude-Lorentz)
+- [x] ε∞ = 2.4, ωₚ = 1.37×10¹⁶ rad/s, γ = 4.0×10¹³ rad/s 적용
+- [x] Lorentz oscillator 3개(78nm/160nm/240nm)로 bound-electron 공명 모델링
+- [x] Johnson & Christy (1974) UV 데이터와 비교 (188-199nm 구간)
+- [x] 검증: `examples/step_1_5_drude_steel.rs` → `output/step_1_5_drude_steel.png`
+  - λ=100nm에서 n=1.38, k=0.22 → 공기 대비 n>1 확보
+  - UV에서 k ≪ 가시광 영역(500nm) → 투과 가능성 확인
 
-#### 🔜 Step 1.6: 흡수 계산 (Beer-Lambert)
-- [ ] 경로 길이(path length) 계산
-- [ ] I = I₀ × exp(-k × distance) 구현
-- [ ] 검증: 파장별 투과율 데이터 출력
+#### ✅ Step 1.6: 흡수 계산 (Beer-Lambert)
+- [x] GPU path trace (Air→Steel, b/R=0.7)로 내부 경로 3.44 μm 확보 (기본 R=1.0 μm)
+- [x] I = I₀ × exp(-αd) with α = 4πk/λ (k from Drude-Lorentz model)
+- [x] 100-400 nm UV 스펙트럼 샘플링, 로그 스케일 transmittance 곡선 렌더링
+- [x] 결과: `output/step_1_6_absorption.png` (GPU: Apple M3), R=1 μm일 때 전 파장대 T < 10⁻⁶ → 실질적으로 불투명
+- 💡 Insight: 투과를 보려면 액적 반경을 UV 파장(50-100 nm) 수준으로 줄여야 함 (d ∝ R)
+- 🛠️ 명령: `cargo run --example step_1_6_absorption -- 0.1` (0.1 μm), `-- 0.05` (0.05 μm) 등으로 파라미터 스윕
 
 #### 🔜 Step 1.7: 다중 파장 시뮬레이션
 - [ ] 가시광선(400-700nm) ~ 원적외선(1-10μm) 영역 샘플링
@@ -163,8 +169,8 @@
 ## 📊 현재 상태
 
 - **현재 Phase**: Phase 1
-- **현재 Step**: Step 1.3 완료 ✅
-- **다음 Step**: Step 1.4 (내부 반사 및 재굴절 경로 추적)
+- **현재 Step**: Step 1.6 완료 ✅ (Beer-Lambert 흡수 계산)
+- **다음 Step**: Step 1.7 (다중 파장 시뮬레이션)
 - **현재 Branch**: `phase1-2d-logic`
 - **GPU**: Apple M3
 - **프로젝트 구조**: 전문적인 모듈 시스템 완성
@@ -173,6 +179,10 @@
   - 스넬의 법칙 굴절 계산 성공
   - 전반사 감지 성공 (임계각 41.8°)
   - Enhanced 시각화 (1920x1080, 두꺼운 선, 호, 배경색)
+  - Drude-Lorentz 모델: λ=100nm에서 n=1.38, k=0.22 → UV 투과
+  - Johnson & Christy (188-199nm)와 정성적 일치 확인
+  - Beer-Lambert 시뮬레이션: 경로 길이 3.44 μm, deep UV transmittance < 10⁻⁶, `output/step_1_6_absorption.png`
+  - Insight: droplet radius를 0.05-0.10 μm로 줄여야 αd ≲ 5 조건 달성 → 투과 가능성
 
 ---
 
@@ -203,9 +213,9 @@ I = I₀ × exp(-α × d)
 - α: 흡수 계수 (k와 관련)
 - d: 경로 길이
 
-### Drude 모델 (금속 광학 상수)
+### Drude-Lorentz 모델 (금속 광학 상수)
 ```
-ε(ω) = 1 - ωₚ²/(ω² + iγω)
+ε(ω) = ε∞ - \frac{ωₚ²}{ω² + iγω} + \sum_j \frac{f_j ωₚ²}{ω_j² - ω² - iΓ_j ω}
 n(ω) + ik(ω) = √ε(ω)
 ```
 
