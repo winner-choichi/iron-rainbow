@@ -22,11 +22,11 @@ async fn main() {
     println!("Step 1.6: Absorption Calculation (Beer-Lambert Law)");
     println!("===================================================\n");
 
-    // Optional CLI argument: droplet radius in μm (default 1.0)
+    // Optional CLI argument: droplet radius in μm (default 0.03 = 30nm)
     let radius = std::env::args()
         .nth(1)
         .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(1.0);
+        .unwrap_or(0.03);  // 30 nm default (same as Step 1.7)
 
     let gpu = GpuContext::new().await;
     println!("GPU: {}\n", gpu.device_name());
@@ -185,21 +185,21 @@ async fn main() {
         renderer.draw_thick_line(x1, y1, x2, y2, 0.05, curve_color);
     }
 
-    // Title
+    // Title (smaller, higher position)
     let title_color = Rgb([40, 40, 40]);
-    renderer.draw_text(-3.5, 4.8, "Beer-Lambert Absorption (UV Steel)", 0.4, title_color);
+    renderer.draw_text(-3.2, 5.2, "Beer-Lambert Absorption (UV Steel)", 0.28, title_color);
 
-    // Axis labels
-    renderer.draw_text(-3.5, y_min - 0.8, "Wavelength (nm)", 0.35, axis_color);
-    renderer.draw_text(x_min - 1.8, 4.5, "Transmittance", 0.35, axis_color);
+    // Axis labels (smaller font, better position)
+    renderer.draw_text(-1.5, -5.3, "Wavelength (nm)", 0.22, axis_color);
+    renderer.draw_text(-5.8, 0.0, "Transmittance T", 0.22, axis_color);
 
     // Mark wavelengths (UV range) with labels
     let wl_markers = [100.0, 150.0, 200.0, 250.0, 300.0, 350.0, 400.0];
     for wl in wl_markers.iter() {
         let x = wl_to_x(*wl);
-        renderer.draw_thick_line(x, y_min, x, y_min + 0.2, 0.03, axis_color);
+        renderer.draw_thick_line(x, y_min, x, y_min + 0.15, 0.03, axis_color);
         let label = format!("{:.0}", wl);
-        renderer.draw_text(x - 0.3, y_min - 0.5, &label, 0.25, axis_color);
+        renderer.draw_text(x - 0.2, y_min - 0.45, &label, 0.18, axis_color);
     }
 
     // Mark transmittance values (log scale: 10^-10 to 10^0) with labels
@@ -208,9 +208,9 @@ async fn main() {
         let t = 10.0_f32.powi(*log_val);
         let y = t_to_y(t);
         if y >= y_min && y <= y_max {
-            renderer.draw_thick_line(x_min, y, x_min + 0.2, y, 0.03, axis_color);
-            let label = format!("1.0-{}", -log_val);
-            renderer.draw_text(x_min - 1.0, y - 0.1, &label, 0.22, axis_color);
+            renderer.draw_thick_line(x_min, y, x_min + 0.15, y, 0.03, axis_color);
+            let label = format!("10-{}", -log_val);
+            renderer.draw_text(x_min - 0.8, y - 0.08, &label, 0.16, axis_color);
         }
     }
 

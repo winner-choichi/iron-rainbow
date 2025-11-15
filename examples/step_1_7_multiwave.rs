@@ -185,23 +185,23 @@ async fn main() {
     renderer.draw_thick_line(x_min, y_min, x_max, y_min, 0.05, axis_color);
     renderer.draw_thick_line(x_min, y_min, x_min, y_max, 0.05, axis_color);
 
-    // Wavelength axis labels
+    // Wavelength axis labels (smaller font)
     let wl_ticks = [145.0, 160.0, 175.0, 190.0, 200.0];
     for wl in wl_ticks.iter() {
         let x = wl_to_x(*wl);
-        renderer.draw_thick_line(x, y_min, x, y_min + 0.15, 0.04, axis_color);
+        renderer.draw_thick_line(x, y_min, x, y_min + 0.15, 0.03, axis_color);
         let label = format!("{:.0}", wl);
-        renderer.draw_text(x - 0.3, y_min - 0.5, &label, 0.25, text_color);
+        renderer.draw_text(x - 0.2, y_min - 0.45, &label, 0.18, text_color);
     }
 
-    // Angle axis labels
+    // Angle axis labels (smaller font, degree symbol)
     let angle_step = ((angle_max_plot - angle_min_plot) / 4.0).round();
     for i in 0..5 {
         let angle = angle_min_plot + i as f32 * angle_step;
         let y = angle_to_y(angle);
-        renderer.draw_thick_line(x_min, y, x_min + 0.15, y, 0.04, axis_color);
+        renderer.draw_thick_line(x_min, y, x_min + 0.15, y, 0.03, axis_color);
         let label = format!("{:.0}", angle);
-        renderer.draw_text(x_min - 0.9, y - 0.1, &label, 0.25, text_color);
+        renderer.draw_text(x_min - 0.7, y - 0.08, &label, 0.16, text_color);
     }
 
     // Draw data line
@@ -226,19 +226,19 @@ async fn main() {
         renderer.draw_filled_circle(x, y, point_size, point_color);
     }
 
-    // Title
+    // Title (smaller, higher)
     let title_color = Rgb([40, 40, 40]);
-    renderer.draw_text(-3.5, 4.8, "UV Rainbow: Angular Dispersion", 0.4, title_color);
+    renderer.draw_text(-2.8, 5.2, "UV Rainbow: Angular Dispersion", 0.28, title_color);
 
-    // Axis labels
-    renderer.draw_text(-3.0, y_min - 0.8, "Wavelength (nm)", 0.35, axis_color);
-    renderer.draw_text(x_min - 1.8, 4.5, "Exit Angle", 0.35, axis_color);
+    // Axis labels (smaller, better position)
+    renderer.draw_text(-1.5, -5.3, "Wavelength (nm)", 0.22, axis_color);
+    renderer.draw_text(-5.8, 0.0, "Exit Angle (deg)", 0.22, axis_color);
 
-    // Legend
-    renderer.draw_thick_line(2.5, 4.0, 3.0, 4.0, 0.06, line_color);
-    renderer.draw_text(3.2, 4.0, "Dispersion", 0.25, line_color);
-    renderer.draw_filled_circle(2.75, 3.5, 0.12, point_color);
-    renderer.draw_text(3.0, 3.5, "Data", 0.25, point_color);
+    // Legend (smaller)
+    renderer.draw_thick_line(2.7, 4.8, 3.1, 4.8, 0.04, line_color);
+    renderer.draw_text(3.2, 4.8, "Dispersion", 0.18, line_color);
+    renderer.draw_filled_circle(2.9, 4.4, 0.08, point_color);
+    renderer.draw_text(3.1, 4.4, "Data", 0.18, point_color);
 
     // Save
     let output_path = "output/step_1_7_multiwave.png";
