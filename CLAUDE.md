@@ -213,37 +213,24 @@
    - LUT: `channel_wavelengths`로 R/G/B 파장 지정, half-texel 샘플링으로 모든 채널 표시.
    - 월드 격자/축, 태양·노출·march steps·디버그 모드(0~9) 키 바인딩 정리.
 
-4. **Step 2.3 – Visualization & UX (진행 중)**
-   - Viewer README 갱신(`README_VIEWER.md`), `cargo run -- <config>` 지원.
-   - TODO: UI/HUD(imgui), 스크린샷, LUT 정규화 튠업.
+4. **Step 2.3 – Visualization & UX ✅**
+   - Space background with procedural stars
+   - Solid ground surface with texture
+   - Natural depth ordering
 
-5. **Step 2.4 – Validation & Optimization (다음 단계)**
-   - Phase 1 스펙트로그램과 렌더러 결과 비교
-   - 다양한 태양 각도/파장에서 검증
-   - 성능 프로파일링
-
----
-
-## Phase 3: 물리 모델 검증 (branch: `phase3-validation`)
-
-### 목표
-- Mie 산란(Mie Scattering) 이론과 비교
-- PyMieScatt 라이브러리 사용
-- Ray Tracing 결과와 Mie 계산 결과의 경향성 비교
-
-### 계획 (세부 단계는 Phase 2 완료 후 작성)
-- Python 환경 설정
-- PyMieScatt 적분 계산
-- 결과 비교 분석 및 보고서 작성
+5. **Step 2.4 – Final Polish ✅**
+   - Refined star rendering (tiny points, no distortion)
+   - Adjusted exposure (0.01 for subtle rainbow)
+   - Depth-based occlusion (ground blocks rainbow naturally)
+   - Professional space scene aesthetics
 
 ---
 
-## 📊 현재 상태
+## 📊 프로젝트 완료 상태
 
-- **현재 Phase**: Phase 2 (3D GPU 렌더링) - Step 2.3 완료 ✅
-- **다음 Step**: Step 2.4 (Validation & Optimization)
-- **다음 Phase**: Phase 3 (Mie 검증)
-- **현재 Branch**: `phase2-3d-simulation`
+- **현재 Phase**: ✅ **Phase 2 완료!** (3D GPU 렌더링)
+- **현재 Branch**: `main` (최종 배포 버전)
+- **프로젝트 상태**: 🎉 **완성!**
 - **GPU**: Apple M3
 - **핵심 완성**: **Phase Function 기반 실시간 무지개 렌더링** 🌈
 - **참고 논문**: "Physically-Based Simulation of Rainbows" (SIGGRAPH 2012)
