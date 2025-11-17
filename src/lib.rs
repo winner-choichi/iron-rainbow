@@ -8,6 +8,8 @@ pub mod shaders;
 pub mod geometry;
 pub mod physics;
 pub mod visualization;
+pub mod lut;
+pub mod viewer_app;
 
 // Re-export commonly used types
 pub use gpu::GpuContext;
@@ -21,3 +23,13 @@ pub use physics::{
     beer_lambert, transmittance, absorbance, path_length_2d,
 };
 pub use visualization::Renderer2D;
+pub use lut::{
+    LutConfig,
+    GridConfig,
+    IntensityConfig,
+    DropletConfig,
+    WavelengthBatchConfig,
+    OutputConfig,
+    RendererConfig,
+    FalseColorStop,
+};

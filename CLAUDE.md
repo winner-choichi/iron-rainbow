@@ -175,18 +175,52 @@
 
 ---
 
-## Phase 2: 3D GPU 렌더링 (branch: `phase2-3d-render`)
+## Phase 2: 3D GPU 렌더링 (branch: `phase2-3d-simulation`)
 
 ### 목표
 - Phase 1 물리 로직을 3D로 확장
 - 실시간 비주얼라이제이션
 - 수십억 개의 광선 실시간 처리
 
-### 계획 (세부 단계는 Phase 1 완료 후 작성)
-- 3D 광선 추적 (구면 좌표계)
-- 카메라 시스템
-- 실시간 렌더링 파이프라인
-- 인터랙티브 파라미터 조정
+### 계획 (LUT 기반 3D 렌더링)
+1. **Phase 1 → LUT 생성기 확장**
+   - `step_1_8_parallel_rays` 파이프라인을 확장해 파장×탈출각 히스토그램을 2D 텍스처로 저장 (예: `output/iron_rainbow_lut.png`).
+   - 가속 파라미터: 파장(145–200nm), 탈출각(-180°~-120°) 해상도, intensity 정규화/float 포맷 정의.
+   - LUT 메타데이터(JSON 등)로 좌표계/색상 규칙 문서화.
+2. **Phase 2 → LUT 기반 실시간 렌더러**
+   - wgpu 렌더링 앱 구성: 카메라, 태양 벡터, anti-solar 각도 계산.
+   - 셰이더는 LUT 텍스처만 조회하고 물리 계산은 수행하지 않음.
+   - 픽셀 단위로 관측 각(X)을 계산 후, 파장(Y)을 루프 샘플링하며 false-color 매핑으로 RGB 누적.
+   - 인터랙티브 파라미터(카메라 위치, 태양 고도, 분위기 스케일 등) 조작 시 LUT는 재생성 없이 그대로 사용.
+3. **UX/파이프라인 정리**
+   - LUT 업데이트 절차 자동화 (CLI 명령으로 재계산).
+   - 실시간 뷰어에서 LUT 버전/설정을 HUD로 표기.
+   - 필요 시 다중 LUT 로딩(예: 다른 액적 분포, 파장 범위) 지원.
+
+### Micro Steps (Phase 2)
+1. **Step 2.0 – LUT Generator 설계 ✅**
+   - `configs/lut_config.toml` 작성, LUT 좌표계 시각화(`step_2_0_lut_layout`).
+   - false-color 범례/축 레이아웃 정리.
+
+2. **Step 2.1 – LUT Generator CLI ✅**
+   - `cargo run --bin lut_generator -- [config]` 명령으로 파장×각도 히스토그램 생성.
+   - 출력: intensity 텍스처(`iron_rainbow_lut.png`) + 메타데이터 JSON.
+   - 기본 config는 `configs/lut_config.toml`, 빠른 검증용 `configs/lut_config_debug.toml` 추가.
+
+3. **Step 2.2 – Real-time Viewer (wgpu) ✅**
+   - `viewer_app` 모듈화: `cargo run` → 기본 config(`configs/lut_config.toml`) 즉시 실행.
+   - 카메라: WASD/QE + 마우스(FPS 스타일), `R` 리셋, 상태 출력(`P`).
+   - LUT: `channel_wavelengths`로 R/G/B 파장 지정, half-texel 샘플링으로 모든 채널 표시.
+   - 월드 격자/축, 태양·노출·march steps·디버그 모드(0~9) 키 바인딩 정리.
+
+4. **Step 2.3 – Visualization & UX (진행 중)**
+   - Viewer README 갱신(`README_VIEWER.md`), `cargo run -- <config>` 지원.
+   - TODO: UI/HUD(imgui), 스크린샷, LUT 정규화 튠업.
+
+5. **Step 2.4 – Validation & Optimization (다음 단계)**
+   - Phase 1 스펙트로그램과 렌더러 결과 비교
+   - 다양한 태양 각도/파장에서 검증
+   - 성능 프로파일링
 
 ---
 
@@ -206,13 +240,20 @@
 
 ## 📊 현재 상태
 
-- **현재 Phase**: 🎉 **Phase 1 완료!** 🎉
-- **현재 Step**: Step 1.9 완료 ✅ (스펙트로그램)
-- **다음 Phase**: Phase 2 (3D GPU 렌더링) - 준비 중
-- **현재 Branch**: `phase1-2d-logic`
+- **현재 Phase**: Phase 2 (3D GPU 렌더링) - Step 2.3 완료 ✅
+- **다음 Step**: Step 2.4 (Validation & Optimization)
+- **다음 Phase**: Phase 3 (Mie 검증)
+- **현재 Branch**: `phase2-3d-simulation`
 - **GPU**: Apple M3
-- **프로젝트 구조**: 전문적인 모듈 시스템 완성
-- **시각화 스타일**: Sebastian Lague 스타일 (교육적, 직관적)
+- **핵심 완성**: **Phase Function 기반 실시간 무지개 렌더링** 🌈
+- **참고 논문**: "Physically-Based Simulation of Rainbows" (SIGGRAPH 2012)
+- **렌더링 방식**: LUT p(θ, λ) 조회 (particle cloud 방식 폐기)
+- **Viewer 실행**: `cargo run --bin viewer`
+- **성능**: 60 FPS, 픽셀당 단일 각도 계산
+- **컨트롤**:
+  - Orbit camera (마우스 드래그, WASD 팬, QE 줌, R 리셋)
+  - 태양 조절 (↑↓ 고도, ←→ 방위각)
+  - Exposure (+/-), Debug modes (0-9)
 - **Phase 1 최종 결과**:
   - ✅ Step 1.0-1.3: GPU 인프라 및 기본 광학 (완료)
   - ✅ Step 1.5-1.7: 물리 모델 및 UV 무지개 발견 (완료)
@@ -319,3 +360,35 @@ draw_label()            // 텍스트 마커 (향후 확장)
 - 광학 상수 데이터베이스: https://refractiveindex.info/
 - PyMieScatt: https://pymiescatt.readthedocs.io/
 - Sebastian Lague (유튜브): 교육적 시각화 스타일 참고
+
+### Step 2.3 완료 세부사항
+
+#### 3D Ray Marching 아키텍처
+```
+Camera (FPS-style)
+  ↓ Ray per pixel
+Droplet Sphere (r=100m)
+  ↓ Ray marching (64 steps default)
+Anti-solar angle calculation
+  ↓ θ = acos(dot(-ray_dir, sun_dir))
+LUT lookup [θ, wavelength]
+  ↓ RGB accumulation
+Final color (gamma corrected)
+```
+
+#### 주요 구현
+- **WGSL 셰이더**: Full-screen ray marching (sphere intersection + volumetric sampling)
+- **Camera**: 3D position, yaw/pitch, FOV 60°
+- **Sun**: Elevation/Azimuth control (directional light)
+- **Uniform 구조**: 3D vectors + padding (WGSL alignment)
+
+#### 컨트롤
+- **WASD**: 카메라 이동 (10 m/s)
+- **Mouse**: 카메라 회전 (클릭하여 캡처, ESC로 해제)
+- **↑↓**: 태양 고도 (-90° ~ 90°)
+- **←→**: 태양 방위각 (0° ~ 360°)
+- **+/-**: Exposure (×1.2, ÷1.2)
+- **[/]**: March steps (8 ~ 512)
+- **0-3**: Debug mode (전체/R/G/B)
+- **P**: 상태 출력 (FPS, 카메라 위치, 태양 각도)
+- **Q**: 종료

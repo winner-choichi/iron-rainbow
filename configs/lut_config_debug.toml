@@ -1,0 +1,35 @@
+[grid]
+wavelength_min_nm = 145.0
+wavelength_max_nm = 160.0
+wavelength_steps = 8
+angle_min_deg = -180.0
+angle_max_deg = -150.0
+angle_steps = 128
+angle_supersample = 1
+
+[intensity]
+normalize_mode = "per_wavelength"
+exposure = 1.0
+
+[droplet]
+radius_um = 0.03
+impact_min = 0.05
+impact_max = 0.85
+impact_samples = 32
+rays_per_wavelength = 2000
+
+[wavelength]
+batch_size = 2
+wavelength_step_nm = 2.0
+
+[output]
+texture_path = "output/iron_rainbow_lut_debug.png"
+metadata_path = "output/iron_rainbow_lut_debug.json"
+format = "png16"
+
+[renderer]
+false_color = [
+    { wavelength = 145.0, color = [64, 64, 255] },
+    { wavelength = 152.0, color = [64, 220, 255] },
+    { wavelength = 160.0, color = [255, 160, 64] }
+]
