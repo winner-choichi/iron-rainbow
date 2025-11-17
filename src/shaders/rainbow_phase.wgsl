@@ -53,48 +53,34 @@ fn intersect_plane(ro: vec3<f32>, rd: vec3<f32>, normal: vec3<f32>, d: f32) -> f
     return -1.0;
 }
 
-// Procedural star field generator
-fn hash(p: vec2<f32>) -> f32 {
-    let p3 = fract(vec3<f32>(p.x, p.y, p.x) * 0.13);
-    let p3_dot = dot(vec3<f32>(p3.x, p3.y + 3.333, p3.z + 33.33), vec3<f32>(p3.y + 33.33, p3.z + 33.33, p3.x + 3.333));
-    return fract((p3.x + p3.y) * p3_dot);
+// Procedural hash for 3D space (no spherical distortion)
+fn hash3(p: vec3<f32>) -> f32 {
+    let p3 = fract(p * 0.1031);
+    let p3_dot = dot(p3, vec3<f32>(p3.y + 19.19, p3.z + 19.19, p3.x + 19.19));
+    return fract((p3.x + p3.y + p3.z) * p3_dot);
 }
 
 fn stars(dir: vec3<f32>) -> vec3<f32> {
-    // Convert direction to spherical coordinates
-    let theta = atan2(dir.z, dir.x);
-    let phi = asin(clamp(dir.y, -1.0, 1.0));
-    let uv = vec2<f32>(theta / (2.0 * PI), phi / PI) * 10.0;
+    // Sample stars directly in 3D space (uniform on sphere)
+    let scale = 500.0; // Higher scale = smaller, denser stars
+    let grid_pos = floor(dir * scale);
 
-    // Generate stars at different scales
-    let star1 = hash(floor(uv * 100.0));
-    let star2 = hash(floor(uv * 50.0));
-    let star3 = hash(floor(uv * 25.0));
+    // Generate star at this grid cell
+    let star_hash = hash3(grid_pos);
 
-    var brightness = 0.0;
+    // Very sparse stars (higher threshold = fewer stars)
+    if (star_hash > 0.9995) {
+        // Small, sharp point-like stars
+        let brightness = (star_hash - 0.9995) * 2000.0; // Bright but small
 
-    // Large bright stars
-    if (star1 > 0.998) {
-        brightness = (star1 - 0.998) * 500.0;
-    }
-    // Medium stars
-    if (star2 > 0.995 && brightness < 0.1) {
-        brightness = (star2 - 0.995) * 200.0;
-    }
-    // Small stars
-    if (star3 > 0.99 && brightness < 0.1) {
-        brightness = (star3 - 0.99) * 100.0;
-    }
-
-    // Slight color variation for stars
-    let color_var = hash(uv * 123.456);
-    if (brightness > 0.0) {
-        if (color_var < 0.2) {
-            return vec3<f32>(brightness * 0.8, brightness * 0.9, brightness); // Blueish
-        } else if (color_var < 0.4) {
-            return vec3<f32>(brightness, brightness * 0.9, brightness * 0.7); // Yellowish
+        // Slight color variation
+        let color_var = hash3(grid_pos * 1.234);
+        if (color_var < 0.15) {
+            return vec3<f32>(brightness * 0.7, brightness * 0.85, brightness); // Blue
+        } else if (color_var < 0.3) {
+            return vec3<f32>(brightness, brightness * 0.95, brightness * 0.8); // Yellow
         } else {
-            return vec3<f32>(brightness, brightness, brightness); // White
+            return vec3<f32>(brightness); // White
         }
     }
 
@@ -248,14 +234,22 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
     // Gamma correction
     color = pow(color, vec3<f32>(1.0 / 2.2));
 
-    // Space background with stars
+    // Check if this pixel has rainbow
+    let has_rainbow = length(color) > 0.001;
+
+    // Background rendering
     var bg_color = stars(ray_dir);
 
-    // Solid ground plane (XZ plane at y=0)
-    let ground_t = intersect_plane(params.camera_pos, ray_dir, vec3<f32>(0.0, 1.0, 0.0), 0.0);
-    if (ground_t > 0.0 && ground_t < 2000.0) {
-        let world_hit = params.camera_pos + ray_dir * ground_t;
-        bg_color = ground_surface(world_hit);
+    // Only render ground if no rainbow (rainbow occludes ground)
+    if (!has_rainbow) {
+        let ground_t = intersect_plane(params.camera_pos, ray_dir, vec3<f32>(0.0, 1.0, 0.0), 0.0);
+        if (ground_t > 0.0 && ground_t < 2000.0) {
+            let world_hit = params.camera_pos + ray_dir * ground_t;
+            bg_color = ground_surface(world_hit);
+        }
+    } else {
+        // Dim the stars behind rainbow for better visibility
+        bg_color *= 0.3;
     }
 
     // Combine rainbow with background
