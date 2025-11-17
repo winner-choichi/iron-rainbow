@@ -1,0 +1,46 @@
+# Lookup Table (LUT) generation parameters for Phase 2
+
+[grid]
+# Wavelength axis (rows)
+wavelength_min_nm = 145.0
+wavelength_max_nm = 200.0
+wavelength_steps = 64
+
+# Exit-angle axis (columns)
+angle_min_deg = -180.0
+angle_max_deg = -120.0
+angle_steps = 512
+
+# Optional supersampling factor when mapping rays to bins
+angle_supersample = 4
+
+[intensity]
+normalize_mode = "per_wavelength"   # options: per_wavelength, global
+exposure = 1.0
+
+[droplet]
+radius_um = 0.03
+impact_min = 0.05
+impact_max = 0.85
+impact_samples = 128
+rays_per_wavelength = 200000
+
+[wavelength]
+# How many wavelengths to batch in a single GPU submission
+batch_size = 4
+wavelength_step_nm = 0.5
+
+[output]
+texture_path = "output/iron_rainbow_lut.png"
+metadata_path = "output/iron_rainbow_lut.json"
+format = "png16"   # options: png8, png16, hdr
+
+[renderer]
+false_color = [
+    { wavelength = 145.0, color = [64, 64, 255] },
+    { wavelength = 160.0, color = [64, 200, 255] },
+    { wavelength = 175.0, color = [64, 255, 150] },
+    { wavelength = 190.0, color = [255, 210, 64] },
+    { wavelength = 200.0, color = [255, 120, 64] }
+]
+channel_wavelengths = [190.0, 170.0, 145.0]  # [R, G, B] order for viewer

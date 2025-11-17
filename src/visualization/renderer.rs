@@ -39,6 +39,23 @@ impl Renderer2D {
         (px, py)
     }
 
+    /// Convert pixel coordinates to world coordinates (top-left origin)
+    fn pixel_to_world(&self, px: f32, py: f32) -> (f32, f32) {
+        let x = (px - self.offset_x) / self.scale;
+        let y = -((py - self.offset_y) / self.scale);
+        (x, y)
+    }
+
+    /// Return renderer dimensions in pixels
+    pub fn dimensions(&self) -> (u32, u32) {
+        (self.width, self.height)
+    }
+
+    /// Public helper to convert world coordinates to pixel coordinates
+    pub fn world_to_pixel_coords(&self, x: f32, y: f32) -> (i32, i32) {
+        self.world_to_pixel(x, y)
+    }
+
     /// Check if pixel is within bounds
     fn in_bounds(&self, px: i32, py: i32) -> bool {
         px >= 0 && px < self.width as i32 && py >= 0 && py < self.height as i32
@@ -299,6 +316,13 @@ impl Renderer2D {
             self.draw_char(cursor_x, y, ch, size, color);
             cursor_x += size * 0.7; // Character spacing
         }
+    }
+
+    /// Draw text positioned directly in screen (pixel) coordinates
+    pub fn draw_text_screen(&mut self, px: f32, py: f32, text: &str, size_px: f32, color: Rgb<u8>) {
+        let (x_world, y_world) = self.pixel_to_world(px, py);
+        let size_world = size_px / self.scale;
+        self.draw_text(x_world, y_world, text, size_world.max(0.01), color);
     }
 
     /// Draw a single character using bitmap font
@@ -705,4 +729,3 @@ impl Renderer2D {
         self.draw_text(x, y, text, 0.3, color);
     }
 }
-
