@@ -84,6 +84,12 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
         return 0.0;
     }
 
+    // Explicit range check: return 0 if outside rainbow angle range
+    let angle_max = params.angle_min_deg + params.angle_range_deg;
+    if (theta_deg < params.angle_min_deg || theta_deg > angle_max) {
+        return 0.0;
+    }
+
     let tex_w = max(f32(params.tex_width), 1.0);
     let tex_h = max(f32(params.tex_height), 1.0);
 
@@ -140,8 +146,10 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
     }
 
     // Calculate scattering angle θ
-    // θ = angle between ray direction and sun direction
-    let cos_theta = dot(ray_dir, params.sun_dir);
+    // θ = angle between ray direction and ANTI-SOLAR direction (opposite of sun)
+    // Rainbow appears as a cone around the anti-solar point
+    let anti_solar = -params.sun_dir;
+    let cos_theta = dot(ray_dir, anti_solar);
     let theta_rad = acos(clamp(cos_theta, -1.0, 1.0));
     let theta_deg = theta_rad * RAD_TO_DEG;
 
