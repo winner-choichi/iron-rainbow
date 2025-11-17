@@ -53,29 +53,69 @@ fn intersect_plane(ro: vec3<f32>, rd: vec3<f32>, normal: vec3<f32>, d: f32) -> f
     return -1.0;
 }
 
-fn grid_color(world_pos: vec3<f32>) -> vec3<f32> {
-    let spacing = 50.0;
-    let line_width = 0.6;
-    let u = world_pos.x;
-    let v = world_pos.z;
+// Procedural star field generator
+fn hash(p: vec2<f32>) -> f32 {
+    let p3 = fract(vec3<f32>(p.x, p.y, p.x) * 0.13);
+    let p3_dot = dot(vec3<f32>(p3.x, p3.y + 3.333, p3.z + 33.33), vec3<f32>(p3.y + 33.33, p3.z + 33.33, p3.x + 3.333));
+    return fract((p3.x + p3.y) * p3_dot);
+}
 
-    let u_mod = abs(fract(u / spacing) - 0.5) * spacing;
-    let v_mod = abs(fract(v / spacing) - 0.5) * spacing;
+fn stars(dir: vec3<f32>) -> vec3<f32> {
+    // Convert direction to spherical coordinates
+    let theta = atan2(dir.z, dir.x);
+    let phi = asin(clamp(dir.y, -1.0, 1.0));
+    let uv = vec2<f32>(theta / (2.0 * PI), phi / PI) * 10.0;
 
-    var color = vec3<f32>(0.0);
+    // Generate stars at different scales
+    let star1 = hash(floor(uv * 100.0));
+    let star2 = hash(floor(uv * 50.0));
+    let star3 = hash(floor(uv * 25.0));
 
-    if (u_mod < line_width || v_mod < line_width) {
-        color = vec3<f32>(0.15, 0.15, 0.18);
+    var brightness = 0.0;
+
+    // Large bright stars
+    if (star1 > 0.998) {
+        brightness = (star1 - 0.998) * 500.0;
+    }
+    // Medium stars
+    if (star2 > 0.995 && brightness < 0.1) {
+        brightness = (star2 - 0.995) * 200.0;
+    }
+    // Small stars
+    if (star3 > 0.99 && brightness < 0.1) {
+        brightness = (star3 - 0.99) * 100.0;
     }
 
-    if (abs(u) < line_width) {
-        color = vec3<f32>(0.0, 0.7, 0.1);
-    }
-    if (abs(v) < line_width) {
-        color = vec3<f32>(0.0, 0.3, 0.8);
+    // Slight color variation for stars
+    let color_var = hash(uv * 123.456);
+    if (brightness > 0.0) {
+        if (color_var < 0.2) {
+            return vec3<f32>(brightness * 0.8, brightness * 0.9, brightness); // Blueish
+        } else if (color_var < 0.4) {
+            return vec3<f32>(brightness, brightness * 0.9, brightness * 0.7); // Yellowish
+        } else {
+            return vec3<f32>(brightness, brightness, brightness); // White
+        }
     }
 
-    return color;
+    return vec3<f32>(0.0);
+}
+
+// Solid ground surface
+fn ground_surface(world_pos: vec3<f32>) -> vec3<f32> {
+    // Base ground color (dark gray with slight variation)
+    let base_color = vec3<f32>(0.15, 0.16, 0.18);
+
+    // Add subtle texture variation
+    let noise_scale = 20.0;
+    let noise_val = hash(vec2<f32>(world_pos.x, world_pos.z) * noise_scale);
+    let texture_color = base_color * (0.9 + noise_val * 0.2);
+
+    // Distance-based fog/fade
+    let dist = length(world_pos - params.camera_pos);
+    let fade = clamp(1.0 - dist / 1000.0, 0.3, 1.0);
+
+    return texture_color * fade;
 }
 
 // Sample phase function (LUT) for given scattering angle and wavelength
@@ -208,23 +248,17 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
     // Gamma correction
     color = pow(color, vec3<f32>(1.0 / 2.2));
 
-    // Background sky
-    var bg_color = vec3<f32>(0.25, 0.35, 0.55);
+    // Space background with stars
+    var bg_color = stars(ray_dir);
 
-    // World-space ground grid (XZ plane at y=0)
+    // Solid ground plane (XZ plane at y=0)
     let ground_t = intersect_plane(params.camera_pos, ray_dir, vec3<f32>(0.0, 1.0, 0.0), 0.0);
-    if (ground_t > 0.0) {
+    if (ground_t > 0.0 && ground_t < 2000.0) {
         let world_hit = params.camera_pos + ray_dir * ground_t;
-        let g_color = grid_color(world_hit);
-        if (length(g_color) > 0.0) {
-            bg_color = mix(bg_color, g_color, 0.8);
-        }
+        bg_color = ground_surface(world_hit);
     }
 
-    // Horizon shading based on ray elevation
-    let horizon = clamp(ray_dir.y * 0.5 + 0.5, 0.0, 1.0);
-    bg_color *= mix(0.6, 1.0, horizon);
-
-    let final_color = color + bg_color * 0.2;
+    // Combine rainbow with background
+    let final_color = color + bg_color;
     return vec4<f32>(final_color, 1.0);
 }

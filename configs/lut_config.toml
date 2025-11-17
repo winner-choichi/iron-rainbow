@@ -15,8 +15,8 @@ angle_steps = 512
 angle_supersample = 4
 
 [intensity]
-normalize_mode = "per_wavelength"   # options: per_wavelength, global
-exposure = 1.0
+normalize_mode = "global"   # options: per_wavelength, global
+exposure = 0.05  # Low exposure for space environment with bright rainbow
 
 [droplet]
 radius_um = 0.03
@@ -43,4 +43,4 @@ false_color = [
     { wavelength = 190.0, color = [255, 210, 64] },
     { wavelength = 200.0, color = [255, 120, 64] }
 ]
-channel_wavelengths = [190.0, 170.0, 145.0]  # [R, G, B] order for viewer
+channel_wavelengths = [190.0, 170.0, 160.0]  # [R, G, B] - Using brighter wavelengths
