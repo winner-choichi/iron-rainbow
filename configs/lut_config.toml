@@ -16,7 +16,7 @@ angle_supersample = 4
 
 [intensity]
 normalize_mode = "global"   # options: per_wavelength, global
-exposure = 0.05  # Low exposure for space environment with bright rainbow
+exposure = 0.01  # Very low exposure for subtle rainbow effect
 
 [droplet]
 radius_um = 0.03

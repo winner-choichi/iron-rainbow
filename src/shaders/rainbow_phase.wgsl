@@ -92,9 +92,9 @@ fn ground_surface(world_pos: vec3<f32>) -> vec3<f32> {
     // Base ground color (dark gray with slight variation)
     let base_color = vec3<f32>(0.15, 0.16, 0.18);
 
-    // Add subtle texture variation
+    // Add subtle texture variation using hash3
     let noise_scale = 20.0;
-    let noise_val = hash(vec2<f32>(world_pos.x, world_pos.z) * noise_scale);
+    let noise_val = hash3(vec3<f32>(world_pos.x, 0.0, world_pos.z) * noise_scale);
     let texture_color = base_color * (0.9 + noise_val * 0.2);
 
     // Distance-based fog/fade
@@ -237,22 +237,34 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
     // Check if this pixel has rainbow
     let has_rainbow = length(color) > 0.001;
 
-    // Background rendering
-    var bg_color = stars(ray_dir);
+    // Assume rainbow is at a fixed distance (like atmospheric phenomenon)
+    let rainbow_distance = 300.0; // Rainbow appears ~300m away
 
-    // Only render ground if no rainbow (rainbow occludes ground)
-    if (!has_rainbow) {
-        let ground_t = intersect_plane(params.camera_pos, ray_dir, vec3<f32>(0.0, 1.0, 0.0), 0.0);
-        if (ground_t > 0.0 && ground_t < 2000.0) {
+    // Calculate ground intersection
+    let ground_t = intersect_plane(params.camera_pos, ray_dir, vec3<f32>(0.0, 1.0, 0.0), 0.0);
+    let ground_visible = ground_t > 0.0 && ground_t < 2000.0;
+    let ground_occludes_rainbow = ground_visible && ground_t < rainbow_distance;
+
+    // Background rendering with proper depth ordering
+    var bg_color = stars(ray_dir);
+    var final_color: vec3<f32>;
+
+    if (ground_occludes_rainbow) {
+        // Ground is closer than rainbow - ground blocks rainbow
+        let world_hit = params.camera_pos + ray_dir * ground_t;
+        final_color = ground_surface(world_hit);
+    } else if (has_rainbow) {
+        // Rainbow is visible - show with dimmed stars behind
+        bg_color *= 0.3;
+        final_color = color + bg_color;
+    } else {
+        // No rainbow - show ground or stars
+        if (ground_visible) {
             let world_hit = params.camera_pos + ray_dir * ground_t;
             bg_color = ground_surface(world_hit);
         }
-    } else {
-        // Dim the stars behind rainbow for better visibility
-        bg_color *= 0.3;
+        final_color = bg_color;
     }
 
-    // Combine rainbow with background
-    let final_color = color + bg_color;
     return vec4<f32>(final_color, 1.0);
 }
