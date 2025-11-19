@@ -113,7 +113,7 @@ pub struct LorentzOscillator {
     pub width: f32,         // Γⱼ (damping width, rad/s)
 }
 
-/// Drude-Lorentz model for metals
+/// Drude-Lorentz model for metals (Semi-empirical)
 /// Calculates complex refractive index: n + ik
 ///
 /// Full Drude-Lorentz model:
@@ -124,6 +124,8 @@ pub struct LorentzOscillator {
 /// - ε∞: high-frequency dielectric constant (bound electrons)
 /// - Drude term: free electron plasma response
 /// - Lorentz terms: interband transitions (UV absorption)
+///
+/// **Note**: Parameters are fitted to experimental data, not first-principles calculations.
 pub struct DrudeModel {
     pub epsilon_inf: f32,       // ε∞ (high-frequency dielectric constant)
     pub plasma_frequency: f32,  // ωₚ (rad/s)
@@ -132,14 +134,23 @@ pub struct DrudeModel {
 }
 
 impl DrudeModel {
-    /// Steel/Iron parameters (Full Drude-Lorentz model)
-    /// Based on Johnson & Christy (1974) experimental data
-    /// Fitted to match UV-visible optical constants (188-400nm)
+    /// Steel/Iron parameters (Semi-empirical Drude-Lorentz model)
+    ///
+    /// **Data Source**: Johnson & Christy (1974) - Optical constants of Fe in UV region
+    /// **Fitting Method**: Manual trial-and-error to match 188-199nm experimental data
+    /// **Accuracy**: n ~11-20% error, k ~28% error at UV wavelengths
+    ///
+    /// Parameters:
+    /// - ε∞ = 2.4 (fitted, general metals range 1.0-2.0)
+    /// - ωₚ = 1.37×10¹⁶ rad/s (literature, plasma frequency)
+    /// - γ = 4.0×10¹³ rad/s (literature, Drude damping)
+    /// - 3 Lorentz oscillators (fitted to reproduce UV optical constants)
     pub fn steel() -> Self {
         // Lorentz oscillators for interband transitions
-        // Fitted to reproduce Fe optical constants around 180-250nm
+        // **Fitted** to reproduce Fe optical constants around 180-250nm
         let oscillators = vec![
-            // Far-UV bound electrons (λ ≈ 80 nm) boost ε₁ so that n > 1 below plasma λ
+            // Far-UV bound electrons (λ ≈ 78 nm)
+            // Purpose: Boost ε₁ so that n > 1 below plasma wavelength
             LorentzOscillator {
                 strength: 1.2,
                 frequency: 2.4e16,          // ω ≈ 78 nm
@@ -151,7 +162,7 @@ impl DrudeModel {
                 frequency: 1.2e16,
                 width: 3.5e15,
             },
-            // Visible/UV tail (λ ≈ 220-260 nm)
+            // Visible/UV tail (λ ≈ 240 nm)
             LorentzOscillator {
                 strength: 0.35,
                 frequency: 8.5e15,
@@ -160,9 +171,9 @@ impl DrudeModel {
         ];
 
         Self {
-            epsilon_inf: 2.4,           // ε∞ tuned to match Johnson & Christy UV data
-            plasma_frequency: 1.37e16,  // ~1.37 × 10^16 rad/s (UV region, ~137 nm)
-            damping: 4.0e13,            // ~4 × 10^13 rad/s (Drude damping)
+            epsilon_inf: 2.4,           // Fitted to Johnson & Christy UV data
+            plasma_frequency: 1.37e16,  // ~1.37 × 10^16 rad/s (literature value)
+            damping: 4.0e13,            // ~4 × 10^13 rad/s (literature value)
             oscillators,
         }
     }

@@ -115,13 +115,15 @@ Validated the core physics using 2D GPU ray tracing:
 
 | Step | Description | Performance |
 |------|-------------|-------------|
-| 1.5 | Drude-Lorentz model | n(100nm) = 1.38, k = 0.22 |
+| 1.5 | Drude-Lorentz model (fitted) | n(100nm) = 1.38, k = 0.22 |
 | 1.6 | Beer-Lambert absorption | R=30nm optimal |
 | 1.7 | UV rainbow discovery | 145-200nm, Δθ=45.88° |
 | 1.8 | Parallel ray tracing | 6.9M rays/sec |
 | 1.9 | Spectrogram generation | 500K rays/sec |
 
 **Result**: Confirmed UV rainbow feasibility with 30nm droplets at 145-200nm.
+
+**Note**: Step 1.5 uses semi-empirical parameters fitted to Johnson & Christy (1974) experimental data with 11-20% accuracy.
 
 ### Phase 2: 3D Real-Time Rendering
 
@@ -182,18 +184,20 @@ channel_wavelengths = [190.0, 170.0, 160.0]  # R, G, B
 
 ## 📚 Physical Model
 
-### Drude-Lorentz Dispersion
+### Drude-Lorentz Dispersion (Semi-empirical)
 
 ```
 ε(ω) = ε∞ - ωₚ²/(ω² + iγω) + Σⱼ fⱼωₚ²/(ωⱼ² - ω² - iΓⱼω)
 n + ik = √ε(ω)
 ```
 
-**Parameters** (Iron):
-- ε∞ = 2.4
-- ωₚ = 1.37×10¹⁶ rad/s
-- γ = 4.0×10¹³ rad/s
-- Lorentz oscillators at 78nm, 160nm, 240nm
+**Parameters** (Fitted to Johnson & Christy 1974 data):
+- ε∞ = 2.4 (fitted)
+- ωₚ = 1.37×10¹⁶ rad/s (literature)
+- γ = 4.0×10¹³ rad/s (literature)
+- Lorentz oscillators at 78nm, 160nm, 240nm (fitted)
+
+**Note**: Parameters fitted to UV experimental data (188-199nm) with ~11-20% accuracy in n, ~28% in k
 
 ### Beer-Lambert Absorption
 

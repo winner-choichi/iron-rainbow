@@ -1,9 +1,12 @@
-/// Step 1.5: Drude Model for Steel (UV Iron Rainbow)
+/// Step 1.5: Drude-Lorentz Model for Steel (Semi-empirical)
 ///
 /// Visualizes complex refractive index for liquid steel:
 /// - n(λ): Real part (refraction)
 /// - k(λ): Imaginary part (absorption)
 /// - Range: UV (100-400nm) where steel becomes transparent
+///
+/// **Model**: Semi-empirical Drude-Lorentz fitted to Johnson & Christy (1974) data
+/// **Accuracy**: n ~11-20% error, k ~28% error at UV wavelengths
 ///
 /// Discovery: Steel is transparent in UV (λ < plasma wavelength ~137nm)
 /// → UV rainbow formation possible!

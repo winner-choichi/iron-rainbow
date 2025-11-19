@@ -103,13 +103,15 @@
 - [ ] 각 교차점 및 굴절/반사 벡터 저장
 - [ ] 검증: 광선 경로 데이터를 이미지(또는 SVG)로 시각화
 
-#### ✅ Step 1.5: 파장별 굴절률 (Drude-Lorentz)
-- [x] ε∞ = 2.4, ωₚ = 1.37×10¹⁶ rad/s, γ = 4.0×10¹³ rad/s 적용
+#### ✅ Step 1.5: 파장별 굴절률 (Drude-Lorentz 피팅)
+- [x] Johnson & Christy (1974) UV 실험 데이터에 맞춰 파라미터 피팅
+- [x] ε∞ = 2.4 (fitted), ωₚ = 1.37×10¹⁶ rad/s, γ = 4.0×10¹³ rad/s
 - [x] Lorentz oscillator 3개(78nm/160nm/240nm)로 bound-electron 공명 모델링
-- [x] Johnson & Christy (1974) UV 데이터와 비교 (188-199nm 구간)
+- [x] 피팅 정확도: n ~11-20% 오차, k ~28% 오차 (188-199nm 구간)
 - [x] 검증: `examples/step_1_5_drude_steel.rs` → `output/step_1_5_drude_steel.png`
-  - λ=100nm에서 n=1.38, k=0.22 → 공기 대비 n>1 확보
+  - λ=100nm에서 n=1.38, k=0.22 → 공기 대비 n>1 확보 (핵심 조건 달성)
   - UV에서 k ≪ 가시광 영역(500nm) → 투과 가능성 확인
+- [x] ⚠️ Semi-empirical model: 제1원리 계산 아님, 실험 데이터 기반 피팅
 
 #### ✅ Step 1.6: 흡수 계산 (Beer-Lambert)
 - [x] GPU path trace (Air→Steel, b/R=0.7)로 내부 경로 3.44 μm 확보 (기본 R=1.0 μm)
@@ -291,11 +293,13 @@ I = I₀ × exp(-α × d)
 - α: 흡수 계수 (k와 관련)
 - d: 경로 길이
 
-### Drude-Lorentz 모델 (금속 광학 상수)
+### Drude-Lorentz 모델 (금속 광학 상수, Semi-empirical)
 ```
 ε(ω) = ε∞ - \frac{ωₚ²}{ω² + iγω} + \sum_j \frac{f_j ωₚ²}{ω_j² - ω² - iΓ_j ω}
 n(ω) + ik(ω) = √ε(ω)
 ```
+**파라미터**: Johnson & Christy (1974) 실험 데이터 피팅 (ε∞ = 2.4, 3 oscillators)
+**정확도**: n ~11-20% 오차, k ~28% 오차 (188-199nm)
 
 ---
 
