@@ -202,16 +202,20 @@ async fn main() {
     renderer.draw_text(-2.5, 5.2, "UV Rainbow Spectrogram", 0.28, text_color);
 
     // Axis labels
-    renderer.draw_text(-1.5, -5.3, "Exit Angle (deg)", 0.22, axis_color);
+    renderer.draw_text(-1.8, -5.3, "Scattering Angle (deg)", 0.22, axis_color);
     renderer.draw_text(-5.8, 0.0, "Wavelength (nm)", 0.22, axis_color);
 
-    // X-axis ticks (angles)
-    let angle_ticks = vec![-180.0, -150.0, -120.0, -90.0, -60.0, -30.0, 0.0];
+    // X-axis ticks (scattering angles: 0° to 180°)
+    let angle_ticks = vec![0.0, 20.0, 40.0, 60.0, 90.0, 120.0, 150.0, 180.0];
     for angle in angle_ticks.iter() {
         if *angle >= angle_min && *angle <= angle_max {
             let x = angle_to_x(*angle);
             renderer.draw_thick_line(x, y_min, x, y_min + 0.15, 0.03, axis_color);
-            let label = format!("{:.0}", angle);
+            let label = if *angle == 42.0 {
+                format!("{:.0}*", angle)  // Mark water rainbow angle
+            } else {
+                format!("{:.0}", angle)
+            };
             renderer.draw_text(x - 0.25, y_min - 0.45, &label, 0.18, text_color);
         }
     }
