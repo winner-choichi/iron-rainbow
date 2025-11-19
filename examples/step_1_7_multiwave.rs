@@ -84,11 +84,22 @@ async fn main() {
         let alpha = 4.0 * PI * k_steel / (*wl * 0.001);
         let transmittance = (-alpha * total_path).exp();
 
-        // Exit angle
+        // Calculate scattering angle (classical rainbow convention)
+        // For backscattering, convert 125°-171° to forward-equivalent 9°-55°
+        // Incident direction: (1, 0) = 0°
         let exit_dir = result.event2_direction;
-        let exit_angle = exit_dir[1].atan2(exit_dir[0]) * 180.0 / PI;
+        let incident_dir = [1.0, 0.0];
 
-        results_data.push((*wl, n_steel, k_steel, exit_angle, transmittance, total_path));
+        // Dot product: cos(θ) = incident · exit
+        let cos_theta = incident_dir[0] * exit_dir[0] + incident_dir[1] * exit_dir[1];
+        let backward_angle = cos_theta.acos() * 180.0 / PI;
+
+        // Convert backscattering to forward-equivalent angle
+        // 180° - θ_back = θ_forward
+        // e.g., 171° backward → 9° forward (comparable to water rainbow 42°)
+        let scattering_angle = 180.0 - backward_angle;
+
+        results_data.push((*wl, n_steel, k_steel, scattering_angle, transmittance, total_path));
     }
 
     if results_data.is_empty() {
@@ -101,11 +112,11 @@ async fn main() {
     // Print detailed results
     println!("Wavelength-Angle Dispersion Table:");
     println!("{:-<80}", "");
-    println!("{:>8} {:>8} {:>8} {:>10} {:>12} {:>12}", "λ (nm)", "n", "k", "Exit (°)", "T (%)", "Path (nm)");
+    println!("{:>8} {:>8} {:>8} {:>12} {:>12} {:>12}", "λ (nm)", "n", "k", "Scatter (°)", "T (%)", "Path (nm)");
     println!("{:-<80}", "");
 
     for (wl, n, k, angle, trans, path) in results_data.iter() {
-        println!("{:>8.1} {:>8.4} {:>8.4} {:>10.2} {:>12.6} {:>12.1}",
+        println!("{:>8.1} {:>8.4} {:>8.4} {:>12.2} {:>12.6} {:>12.1}",
                  wl, n, k, angle, trans * 100.0, path * 1000.0);
     }
     println!("{:-<80}\n", "");
@@ -122,9 +133,10 @@ async fn main() {
     let avg_trans = transmittances.iter().sum::<f32>() / transmittances.len() as f32;
 
     println!("Angular Dispersion Analysis:");
-    println!("  Minimum exit angle: {:.2}°", min_angle);
-    println!("  Maximum exit angle: {:.2}°", max_angle);
+    println!("  Minimum scattering angle: {:.2}°", min_angle);
+    println!("  Maximum scattering angle: {:.2}°", max_angle);
     println!("  Angular spread (rainbow width): {:.2}°", angle_spread);
+    println!("  Note: For comparison, water rainbow spread ≈ 2° (42.3°-40.6°)");
     println!("\nTransmittance Analysis:");
     println!("  Maximum: {:.4}%", max_trans * 100.0);
     println!("  Average: {:.4}%", avg_trans * 100.0);

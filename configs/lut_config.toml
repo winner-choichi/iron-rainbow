@@ -6,9 +6,11 @@ wavelength_min_nm = 145.0
 wavelength_max_nm = 200.0
 wavelength_steps = 64
 
-# Exit-angle axis (columns)
-angle_min_deg = -180.0
-angle_max_deg = -120.0
+# Scattering-angle axis (columns)
+# 0° = forward scattering, 180° = backward scattering
+# Water rainbow ≈ 42°, Iron rainbow ≈ 8-10° (backward)
+angle_min_deg = 0.0
+angle_max_deg = 180.0
 angle_steps = 512
 
 # Optional supersampling factor when mapping rays to bins

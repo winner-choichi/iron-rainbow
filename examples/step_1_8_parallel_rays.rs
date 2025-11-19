@@ -32,7 +32,7 @@ async fn main() {
     let circle = Circle::new([0.0, 0.0], radius);
 
     // Select single wavelength for initial test
-    let wavelength = 150.0;  // nm (peak n value from Step 1.7)
+    let wavelength = 170.0;  // nm (peak n value from Step 1.7)
     let (n_steel, k_steel) = steel.complex_index(wavelength);
     let n_air = 1.0;
 
@@ -91,11 +91,18 @@ async fn main() {
             let alpha = 4.0 * PI * k_steel / (wavelength * 0.001);
             let transmittance = (-alpha * total_path).exp();
 
-            // Exit angle
+            // Calculate scattering angle (classical rainbow convention)
             let exit_dir = result.event2_direction;
-            let exit_angle = exit_dir[1].atan2(exit_dir[0]) * 180.0 / PI;
+            let incident_dir = [1.0, 0.0];  // Horizontal right
 
-            angle_intensity_pairs.push((exit_angle, transmittance));
+            // cos(θ) = incident · exit
+            let cos_theta = incident_dir[0] * exit_dir[0] + incident_dir[1] * exit_dir[1];
+            let backward_angle = cos_theta.acos() * 180.0 / PI;
+
+            // Convert to forward-equivalent angle (180° - θ)
+            let scattering_angle = 180.0 - backward_angle;
+
+            angle_intensity_pairs.push((scattering_angle, transmittance));
             successful_rays += 1;
         }
     }
@@ -112,10 +119,10 @@ async fn main() {
         return;
     }
 
-    // Build angular histogram
-    let angle_min = -180.0;
+    // Build angular histogram (scattering angle: 0° to 180°)
+    let angle_min = 0.0;
     let angle_max = 180.0;
-    let num_bins = 360;  // 1 degree per bin
+    let num_bins = 180;  // 1 degree per bin
     let bin_width = (angle_max - angle_min) / num_bins as f32;
 
     let mut histogram = vec![0.0f32; num_bins];
@@ -135,11 +142,12 @@ async fn main() {
     let min_angle = angles.iter().cloned().fold(f32::INFINITY, f32::min);
     let max_angle = angles.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
 
-    println!("Angular Distribution:");
+    println!("Angular Distribution (Scattering Angle):");
     println!("  Angle range: {:.1}° to {:.1}°", min_angle, max_angle);
     println!("  Angular spread: {:.1}°", max_angle - min_angle);
     println!("  Peak intensity: {:.6}", max_intensity);
-    println!("  Total intensity: {:.6}\n", total_intensity);
+    println!("  Total intensity: {:.6}", total_intensity);
+    println!("  Note: Water rainbow ≈ 42°, Alexander's dark band ≈ 50°\n");
 
     // Visualization
     println!("Generating visualization...");

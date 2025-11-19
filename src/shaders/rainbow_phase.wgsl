@@ -171,33 +171,34 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
         return vec4<f32>(abs(ray_dir), 1.0);
     }
 
-    // Calculate scattering angle θ
-    // θ = angle between ray direction and ANTI-SOLAR direction (opposite of sun)
-    // Rainbow appears as a cone around the anti-solar point
-    let anti_solar = -params.sun_dir;
-    let cos_theta = dot(ray_dir, anti_solar);
+    // Calculate scattering angle θ (classical rainbow convention)
+    // First calculate backward angle, then convert to forward-equivalent
+    // Water rainbow ≈ 42°, Iron rainbow ≈ 8-10°
+    let cos_theta = dot(ray_dir, params.sun_dir);
     let theta_rad = acos(clamp(cos_theta, -1.0, 1.0));
-    let theta_deg = theta_rad * RAD_TO_DEG;
+    let backward_angle = theta_rad * RAD_TO_DEG;
+
+    // Convert backscattering to forward-equivalent (180° - θ)
+    let scattering_angle = 180.0 - backward_angle;
 
     // Debug mode 7: Scattering angle visualization
     if (params.debug_mode == 7u) {
-        let norm = theta_deg / 180.0;
+        let norm = scattering_angle / 180.0;
         return vec4<f32>(norm, norm, norm, 1.0);
     }
 
-    // Debug mode 6: Show only rainbow range (120° - 180°)
+    // Debug mode 6: Show expected rainbow range (0° - 20°)
     if (params.debug_mode == 6u) {
-        if (theta_deg >= 120.0 && theta_deg <= 180.0) {
-            let norm = (theta_deg - 120.0) / 60.0;
+        if (scattering_angle >= 0.0 && scattering_angle <= 20.0) {
+            let norm = scattering_angle / 20.0;
             return vec4<f32>(0.0, norm, 1.0 - norm, 1.0);
         } else {
             return vec4<f32>(0.1, 0.1, 0.1, 1.0);
         }
     }
 
-    // Map physical angle (0° - 180°) to LUT angle range
-    // LUT stores -180° to -120° which represents 120° to 180° backscattering
-    let lut_angle = -180.0 + (theta_deg - 120.0);
+    // LUT lookup - scattering angle directly maps to LUT (0° to 180°)
+    let lut_angle = scattering_angle;
 
     // Debug mode 5: LUT range check
     if (params.debug_mode == 5u) {

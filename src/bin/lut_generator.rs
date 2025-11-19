@@ -126,9 +126,16 @@ async fn simulate_wavelength(
             continue;
         }
 
+        // Calculate scattering angle (classical rainbow convention)
         let exit_dir = result.event2_direction;
-        let exit_angle = exit_dir[1].atan2(exit_dir[0]) * 180.0 / PI;
-        if let Some(exact_idx) = config.angle_index(exit_angle) {
+        let incident_dir = [1.0, 0.0];
+        let cos_theta = incident_dir[0] * exit_dir[0] + incident_dir[1] * exit_dir[1];
+        let backward_angle = cos_theta.acos() * 180.0 / PI;
+
+        // Convert to forward-equivalent angle (180° - θ)
+        let scattering_angle = 180.0 - backward_angle;
+
+        if let Some(exact_idx) = config.angle_index(scattering_angle) {
             let base = exact_idx.floor();
             let frac = exact_idx - base;
             let idx0 = base as usize;

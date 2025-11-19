@@ -50,10 +50,10 @@ async fn main() {
     println!("  Rays per wavelength: {}", num_rays_per_wavelength);
     println!("  Total rays: {}\n", num_wavelengths * num_rays_per_wavelength);
 
-    // Data structures for 2D heatmap
+    // Data structures for 2D heatmap (scattering angle: 0° to 180°)
     let num_angle_bins = 180;  // 1 degree resolution
-    let angle_min = -180.0;
-    let angle_max = 0.0;  // Focus on backward scattering
+    let angle_min = 0.0;
+    let angle_max = 180.0;  // Full scattering range
     let angle_bin_width = (angle_max - angle_min) / num_angle_bins as f32;
 
     // 2D grid: [wavelength_idx][angle_bin_idx] = intensity
@@ -103,13 +103,19 @@ async fn main() {
                 let alpha = 4.0 * PI * k_steel / (wavelength * 0.001);
                 let transmittance = (-alpha * total_path).exp();
 
-                // Exit angle
+                // Calculate scattering angle (classical rainbow convention)
                 let exit_dir = result.event2_direction;
-                let exit_angle = exit_dir[1].atan2(exit_dir[0]) * 180.0 / PI;
+                let incident_dir = [1.0, 0.0];
+
+                let cos_theta = incident_dir[0] * exit_dir[0] + incident_dir[1] * exit_dir[1];
+                let backward_angle = cos_theta.acos() * 180.0 / PI;
+
+                // Convert to forward-equivalent angle
+                let scattering_angle = 180.0 - backward_angle;
 
                 // Bin the angle
-                if exit_angle >= angle_min && exit_angle <= angle_max {
-                    let bin_idx = ((exit_angle - angle_min) / angle_bin_width).floor() as usize;
+                if scattering_angle >= angle_min && scattering_angle <= angle_max {
+                    let bin_idx = ((scattering_angle - angle_min) / angle_bin_width).floor() as usize;
                     if bin_idx < num_angle_bins {
                         heatmap[wl_idx][bin_idx] += transmittance;
                         successful += 1;
