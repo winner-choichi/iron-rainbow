@@ -1,6 +1,5 @@
 /// Beer-Lambert absorption law
 /// Calculates intensity attenuation through absorbing media
-
 use crate::physics::AbsorptionCoefficient;
 
 /// Calculate transmitted intensity using Beer-Lambert law
@@ -46,7 +45,10 @@ mod tests {
     #[test]
     fn test_beer_lambert_no_absorption() {
         let intensity = beer_lambert(1.0, 0.0, 100.0);
-        assert!((intensity - 1.0).abs() < 1e-6, "No absorption should preserve intensity");
+        assert!(
+            (intensity - 1.0).abs() < 1e-6,
+            "No absorption should preserve intensity"
+        );
     }
 
     #[test]
@@ -58,7 +60,7 @@ mod tests {
     #[test]
     fn test_transmittance_half() {
         // Find path length that gives 50% transmittance
-        let alpha = 0.693;  // ln(2)
+        let alpha = 0.693; // ln(2)
         let path = 1.0;
         let t = transmittance(alpha, path);
         assert!((t - 0.5).abs() < 0.01, "Should give ~50% transmittance");

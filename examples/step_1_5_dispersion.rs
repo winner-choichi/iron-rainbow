@@ -1,3 +1,4 @@
+use image::Rgb;
 /// Step 1.5: Wavelength-Dependent Refractive Index
 ///
 /// Visualizes dispersion curves for different materials:
@@ -6,9 +7,7 @@
 /// - Comparison of n(λ) across visible spectrum
 ///
 /// Run with: cargo run --example step_1_5_dispersion
-
-use iron_rainbow::{CauchyModel, DispersionModel, Renderer2D, SellmeierModel, wavelengths};
-use image::Rgb;
+use iron_rainbow::{wavelengths, CauchyModel, DispersionModel, Renderer2D, SellmeierModel};
 
 fn main() {
     println!("Step 1.5: Wavelength-Dependent Refractive Index");
@@ -22,8 +21,12 @@ fn main() {
     let num_samples = 100;
     let wavelengths = wavelengths::sample_visible(num_samples);
 
-    println!("Sampling {} wavelengths from {} to {} nm\n",
-             num_samples, wavelengths::VIOLET, wavelengths::RED);
+    println!(
+        "Sampling {} wavelengths from {} to {} nm\n",
+        num_samples,
+        wavelengths::VIOLET,
+        wavelengths::RED
+    );
 
     // Calculate refractive indices
     let cauchy_indices: Vec<f32> = wavelengths
@@ -38,24 +41,54 @@ fn main() {
 
     // Print some key wavelengths
     println!("Cauchy Model (Simple Glass):");
-    println!("  Violet (400nm): n = {:.6}", cauchy_glass.refractive_index(400.0));
-    println!("  Blue   (450nm): n = {:.6}", cauchy_glass.refractive_index(450.0));
-    println!("  Green  (550nm): n = {:.6}", cauchy_glass.refractive_index(550.0));
-    println!("  Yellow (580nm): n = {:.6}", cauchy_glass.refractive_index(580.0));
-    println!("  Red    (700nm): n = {:.6}", cauchy_glass.refractive_index(700.0));
+    println!(
+        "  Violet (400nm): n = {:.6}",
+        cauchy_glass.refractive_index(400.0)
+    );
+    println!(
+        "  Blue   (450nm): n = {:.6}",
+        cauchy_glass.refractive_index(450.0)
+    );
+    println!(
+        "  Green  (550nm): n = {:.6}",
+        cauchy_glass.refractive_index(550.0)
+    );
+    println!(
+        "  Yellow (580nm): n = {:.6}",
+        cauchy_glass.refractive_index(580.0)
+    );
+    println!(
+        "  Red    (700nm): n = {:.6}",
+        cauchy_glass.refractive_index(700.0)
+    );
 
     println!("\nSellmeier Model (BK7 Glass):");
-    println!("  Violet (400nm): n = {:.6}", sellmeier_bk7.refractive_index(400.0));
-    println!("  Blue   (450nm): n = {:.6}", sellmeier_bk7.refractive_index(450.0));
-    println!("  Green  (550nm): n = {:.6}", sellmeier_bk7.refractive_index(550.0));
-    println!("  Yellow (580nm): n = {:.6}", sellmeier_bk7.refractive_index(580.0));
-    println!("  Red    (700nm): n = {:.6}", sellmeier_bk7.refractive_index(700.0));
+    println!(
+        "  Violet (400nm): n = {:.6}",
+        sellmeier_bk7.refractive_index(400.0)
+    );
+    println!(
+        "  Blue   (450nm): n = {:.6}",
+        sellmeier_bk7.refractive_index(450.0)
+    );
+    println!(
+        "  Green  (550nm): n = {:.6}",
+        sellmeier_bk7.refractive_index(550.0)
+    );
+    println!(
+        "  Yellow (580nm): n = {:.6}",
+        sellmeier_bk7.refractive_index(580.0)
+    );
+    println!(
+        "  Red    (700nm): n = {:.6}",
+        sellmeier_bk7.refractive_index(700.0)
+    );
 
     // Calculate dispersion (Δn = n_blue - n_red)
-    let cauchy_dispersion = cauchy_glass.refractive_index(400.0)
-                          - cauchy_glass.refractive_index(700.0);
-    let sellmeier_dispersion = sellmeier_bk7.refractive_index(400.0)
-                             - sellmeier_bk7.refractive_index(700.0);
+    let cauchy_dispersion =
+        cauchy_glass.refractive_index(400.0) - cauchy_glass.refractive_index(700.0);
+    let sellmeier_dispersion =
+        sellmeier_bk7.refractive_index(400.0) - sellmeier_bk7.refractive_index(700.0);
 
     println!("\nDispersion (Δn = n_violet - n_red):");
     println!("  Cauchy:    Δn = {:.6}", cauchy_dispersion);
@@ -69,8 +102,8 @@ fn main() {
     renderer.fill_rect(-5.0, 5.0, 10.0, 10.0, bg_color);
 
     // Colors
-    let cauchy_color = Rgb([0, 120, 255]);     // Blue
-    let sellmeier_color = Rgb([255, 80, 0]);   // Orange
+    let cauchy_color = Rgb([0, 120, 255]); // Blue
+    let sellmeier_color = Rgb([255, 80, 0]); // Orange
     let axis_color = Rgb([100, 100, 100]);
     let grid_color = Rgb([220, 220, 220]);
 
@@ -82,15 +115,15 @@ fn main() {
 
     // Map wavelength to x coordinate
     let wl_to_x = |wl: f32| {
-        x_min + (wl - wavelengths::VIOLET) / (wavelengths::RED - wavelengths::VIOLET) * (x_max - x_min)
+        x_min
+            + (wl - wavelengths::VIOLET) / (wavelengths::RED - wavelengths::VIOLET)
+                * (x_max - x_min)
     };
 
     // Map refractive index to y coordinate
     let n_min = 1.45;
     let n_max = 1.55;
-    let n_to_y = |n: f32| {
-        y_min + (n - n_min) / (n_max - n_min) * (y_max - y_min)
-    };
+    let n_to_y = |n: f32| y_min + (n - n_min) / (n_max - n_min) * (y_max - y_min);
 
     // Draw grid
     for i in 0..10 {
@@ -128,11 +161,11 @@ fn main() {
 
     // Mark key wavelengths
     let markers = [
-        (400.0, "V"),  // Violet
-        (450.0, "B"),  // Blue
-        (550.0, "G"),  // Green
-        (580.0, "Y"),  // Yellow
-        (700.0, "R"),  // Red
+        (400.0, "V"), // Violet
+        (450.0, "B"), // Blue
+        (550.0, "G"), // Green
+        (580.0, "Y"), // Yellow
+        (700.0, "R"), // Red
     ];
 
     for (wl, _label) in markers.iter() {

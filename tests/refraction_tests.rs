@@ -1,7 +1,6 @@
 /// Physics validation tests for refraction calculations
 /// These tests verify Snell's law is correctly implemented
-
-use iron_rainbow::{GpuContext, Ray, RefractionInput, compute_refractions};
+use iron_rainbow::{compute_refractions, GpuContext, Ray, RefractionInput};
 
 /// Test Snell's law: n1*sin(θ1) = n2*sin(θ2)
 #[tokio::test]
@@ -16,7 +15,7 @@ async fn test_snells_law_air_to_glass() {
     let expected_refracted_angle = (n_air * incident_angle.sin() / n_glass).asin();
 
     let ray = Ray::new([0.0, 0.0], [incident_angle.cos(), incident_angle.sin()]);
-    let normal = [1.0, 0.0];  // Pointing right
+    let normal = [1.0, 0.0]; // Pointing right
 
     let input = RefractionInput::new(&ray, [0.0, 0.0], normal, n_air, n_glass);
     let results = compute_refractions(&gpu, &[input]).await;
@@ -27,7 +26,8 @@ async fn test_snells_law_air_to_glass() {
     let actual_angle = refr[1].atan2(refr[0]);
 
     let error = (actual_angle - expected_refracted_angle).abs();
-    assert!(error < 0.01,
+    assert!(
+        error < 0.01,
         "Snell's law violation: expected {:.3}°, got {:.3}°, error {:.3}°",
         expected_refracted_angle.to_degrees(),
         actual_angle.to_degrees(),
@@ -50,7 +50,8 @@ async fn test_total_internal_reflection() {
     let input1 = RefractionInput::new(&ray1, [0.0, 0.0], [-1.0, 0.0], n_glass, n_air);
     let results1 = compute_refractions(&gpu, &[input1]).await;
 
-    assert!(!results1[0].is_tir(),
+    assert!(
+        !results1[0].is_tir(),
         "Should refract at {:.1}° (below critical {:.1}°)",
         below_critical.to_degrees(),
         critical_angle.to_degrees()
@@ -62,7 +63,8 @@ async fn test_total_internal_reflection() {
     let input2 = RefractionInput::new(&ray2, [0.0, 0.0], [-1.0, 0.0], n_glass, n_air);
     let results2 = compute_refractions(&gpu, &[input2]).await;
 
-    assert!(results2[0].is_tir(),
+    assert!(
+        results2[0].is_tir(),
         "Should have TIR at {:.1}° (above critical {:.1}°)",
         above_critical.to_degrees(),
         critical_angle.to_degrees()
@@ -84,7 +86,8 @@ async fn test_normal_incidence() {
 
     // Should continue straight (no bending at normal incidence)
     let angle_error = refr[1].abs();
-    assert!(angle_error < 0.01,
+    assert!(
+        angle_error < 0.01,
         "Normal incidence should go straight, but got angle {:.3}°",
         refr[1].atan2(refr[0]).to_degrees()
     );
@@ -105,7 +108,8 @@ async fn test_bends_toward_normal() {
     let refr = results[0].refracted_direction();
     let refracted_angle = refr[1].atan2(refr[0]);
 
-    assert!(refracted_angle.abs() < incident_angle.abs(),
+    assert!(
+        refracted_angle.abs() < incident_angle.abs(),
         "Ray should bend toward normal: incident {:.1}°, refracted {:.1}°",
         incident_angle.to_degrees(),
         refracted_angle.to_degrees()

@@ -1,18 +1,17 @@
 /// Ray-circle intersection computation on GPU
 /// High-performance parallel intersection testing
-
-use crate::geometry::{Ray, Circle};
-use crate::gpu::{GpuContext, ComputePipeline, BufferManager, execute_and_read};
+use crate::geometry::{Circle, Ray};
+use crate::gpu::{execute_and_read, BufferManager, ComputePipeline, GpuContext};
 use crate::shaders;
 
 /// Intersection result from GPU computation
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct IntersectionResult {
-    pub hit: f32,       // 0.0 = miss, 1.0 = hit
-    pub t: f32,         // distance along ray
-    pub point_x: f32,   // intersection point x
-    pub point_y: f32,   // intersection point y
+    pub hit: f32,     // 0.0 = miss, 1.0 = hit
+    pub t: f32,       // distance along ray
+    pub point_x: f32, // intersection point x
+    pub point_y: f32, // intersection point y
 }
 
 impl IntersectionResult {
@@ -87,10 +86,12 @@ pub async fn compute_intersections(
 
     // Create GPU buffers
     let rays_buffer = BufferManager::create_storage_buffer_init(device, "Rays Buffer", rays);
-    let circle_buffer = BufferManager::create_storage_buffer_init(device, "Circle Buffer", &[*circle]);
+    let circle_buffer =
+        BufferManager::create_storage_buffer_init(device, "Circle Buffer", &[*circle]);
 
     let results_size = (rays.len() * std::mem::size_of::<IntersectionResult>()) as u64;
-    let results_buffer = BufferManager::create_storage_buffer(device, "Results Buffer", results_size);
+    let results_buffer =
+        BufferManager::create_storage_buffer(device, "Results Buffer", results_size);
 
     // Create bind group
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -113,7 +114,7 @@ pub async fn compute_intersections(
     });
 
     // Execute on GPU and read results
-    let workgroups = ((rays.len() as u32 + 63) / 64, 1, 1);  // 64 threads per workgroup
+    let workgroups = ((rays.len() as u32 + 63) / 64, 1, 1); // 64 threads per workgroup
     execute_and_read(
         device,
         queue,
@@ -122,5 +123,6 @@ pub async fn compute_intersections(
         &results_buffer,
         workgroups,
         rays.len(),
-    ).await
+    )
+    .await
 }

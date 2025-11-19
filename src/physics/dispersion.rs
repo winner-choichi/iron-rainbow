@@ -23,9 +23,9 @@ pub trait DispersionModel {
 /// n(λ) = A + B/λ² + C/λ⁴
 /// Valid for visible spectrum, no absorption
 pub struct CauchyModel {
-    pub a: f32,  // Constant term
-    pub b: f32,  // λ⁻² coefficient (in μm²)
-    pub c: f32,  // λ⁻⁴ coefficient (in μm⁴)
+    pub a: f32, // Constant term
+    pub b: f32, // λ⁻² coefficient (in μm²)
+    pub c: f32, // λ⁻⁴ coefficient (in μm⁴)
 }
 
 impl CauchyModel {
@@ -33,7 +33,7 @@ impl CauchyModel {
     pub fn glass() -> Self {
         Self {
             a: 1.458,
-            b: 0.00354,  // μm²
+            b: 0.00354, // μm²
             c: 0.0,
         }
     }
@@ -50,7 +50,7 @@ impl CauchyModel {
 
 impl DispersionModel for CauchyModel {
     fn refractive_index(&self, wavelength_nm: Wavelength) -> RefractiveIndex {
-        let lambda_um = wavelength_nm / 1000.0;  // Convert nm to μm
+        let lambda_um = wavelength_nm / 1000.0; // Convert nm to μm
         let lambda2 = lambda_um * lambda_um;
         let lambda4 = lambda2 * lambda2;
 
@@ -58,7 +58,7 @@ impl DispersionModel for CauchyModel {
     }
 
     fn absorption_coefficient(&self, _wavelength_nm: Wavelength) -> AbsorptionCoefficient {
-        0.0  // Transparent materials have no absorption
+        0.0 // Transparent materials have no absorption
     }
 }
 
@@ -68,7 +68,7 @@ pub struct SellmeierModel {
     pub b1: f32,
     pub b2: f32,
     pub b3: f32,
-    pub c1: f32,  // in μm²
+    pub c1: f32, // in μm²
     pub c2: f32,
     pub c3: f32,
 }
@@ -80,7 +80,7 @@ impl SellmeierModel {
             b1: 1.03961212,
             b2: 0.231792344,
             b3: 1.01046945,
-            c1: 0.00600069867,  // μm²
+            c1: 0.00600069867, // μm²
             c2: 0.0200179144,
             c3: 103.560653,
         }
@@ -108,9 +108,9 @@ impl DispersionModel for SellmeierModel {
 /// Lorentz oscillator for interband transitions
 #[derive(Clone, Copy, Debug)]
 pub struct LorentzOscillator {
-    pub strength: f32,      // fⱼ (oscillator strength)
-    pub frequency: f32,     // ωⱼ (resonance frequency, rad/s)
-    pub width: f32,         // Γⱼ (damping width, rad/s)
+    pub strength: f32,  // fⱼ (oscillator strength)
+    pub frequency: f32, // ωⱼ (resonance frequency, rad/s)
+    pub width: f32,     // Γⱼ (damping width, rad/s)
 }
 
 /// Drude-Lorentz model for metals (Semi-empirical)
@@ -127,10 +127,10 @@ pub struct LorentzOscillator {
 ///
 /// **Note**: Parameters are fitted to experimental data, not first-principles calculations.
 pub struct DrudeModel {
-    pub epsilon_inf: f32,       // ε∞ (high-frequency dielectric constant)
-    pub plasma_frequency: f32,  // ωₚ (rad/s)
-    pub damping: f32,           // γ (rad/s, Drude damping)
-    pub oscillators: Vec<LorentzOscillator>,  // Interband transitions
+    pub epsilon_inf: f32,      // ε∞ (high-frequency dielectric constant)
+    pub plasma_frequency: f32, // ωₚ (rad/s)
+    pub damping: f32,          // γ (rad/s, Drude damping)
+    pub oscillators: Vec<LorentzOscillator>, // Interband transitions
 }
 
 impl DrudeModel {
@@ -153,7 +153,7 @@ impl DrudeModel {
             // Purpose: Boost ε₁ so that n > 1 below plasma wavelength
             LorentzOscillator {
                 strength: 1.2,
-                frequency: 2.4e16,          // ω ≈ 78 nm
+                frequency: 2.4e16, // ω ≈ 78 nm
                 width: 5.0e15,
             },
             // Near-UV interband transition (λ ≈ 160 nm)
@@ -171,9 +171,9 @@ impl DrudeModel {
         ];
 
         Self {
-            epsilon_inf: 2.4,           // Fitted to Johnson & Christy UV data
-            plasma_frequency: 1.37e16,  // ~1.37 × 10^16 rad/s (literature value)
-            damping: 4.0e13,            // ~4 × 10^13 rad/s (literature value)
+            epsilon_inf: 2.4,          // Fitted to Johnson & Christy UV data
+            plasma_frequency: 1.37e16, // ~1.37 × 10^16 rad/s (literature value)
+            damping: 4.0e13,           // ~4 × 10^13 rad/s (literature value)
             oscillators,
         }
     }
@@ -183,7 +183,7 @@ impl DrudeModel {
     pub fn complex_index(&self, wavelength_nm: Wavelength) -> (f32, f32) {
         // Convert wavelength to angular frequency
         // ω = 2πc/λ
-        let c = 2.998e17;  // Speed of light in nm/s
+        let c = 2.998e17; // Speed of light in nm/s
         let omega = 2.0 * std::f32::consts::PI * c / wavelength_nm;
 
         let omega_p = self.plasma_frequency;
@@ -207,12 +207,12 @@ impl DrudeModel {
         let mut eps2_lorentz = 0.0;
 
         for osc in &self.oscillators {
-            let xj = osc.frequency / omega_p;      // ωⱼ/ωₚ
-            let gj = osc.width / omega_p;          // Γⱼ/ωₚ
+            let xj = osc.frequency / omega_p; // ωⱼ/ωₚ
+            let gj = osc.width / omega_p; // Γⱼ/ωₚ
             let fj = osc.strength;
 
             let xj2 = xj * xj;
-            let delta = xj2 - x2;                   // ωⱼ² - ω²
+            let delta = xj2 - x2; // ωⱼ² - ω²
 
             // Denominator: (ωⱼ² - ω²)² + (Γⱼω)²
             let denom_lor = delta * delta + (gj * x) * (gj * x);
@@ -258,17 +258,17 @@ pub mod wavelengths {
     use super::Wavelength;
 
     // Ultraviolet spectrum (for steel rainbow)
-    pub const DEEP_UV: Wavelength = 100.0;     // nm (extreme UV)
-    pub const UV_C: Wavelength = 200.0;        // nm (far UV)
-    pub const UV_B: Wavelength = 300.0;        // nm (mid UV)
-    pub const UV_A: Wavelength = 380.0;        // nm (near UV)
+    pub const DEEP_UV: Wavelength = 100.0; // nm (extreme UV)
+    pub const UV_C: Wavelength = 200.0; // nm (far UV)
+    pub const UV_B: Wavelength = 300.0; // nm (mid UV)
+    pub const UV_A: Wavelength = 380.0; // nm (near UV)
 
     // UV range bounds
-    pub const UV_MIN: Wavelength = DEEP_UV;    // 100 nm
-    pub const UV_MAX: Wavelength = VIOLET;     // 400 nm
+    pub const UV_MIN: Wavelength = DEEP_UV; // 100 nm
+    pub const UV_MAX: Wavelength = VIOLET; // 400 nm
 
     // Visible spectrum
-    pub const VIOLET: Wavelength = 400.0;  // nm
+    pub const VIOLET: Wavelength = 400.0; // nm
     pub const BLUE: Wavelength = 450.0;
     pub const CYAN: Wavelength = 500.0;
     pub const GREEN: Wavelength = 550.0;
@@ -277,9 +277,9 @@ pub mod wavelengths {
     pub const RED: Wavelength = 700.0;
 
     // Infrared spectrum
-    pub const NEAR_IR: Wavelength = 1000.0;    // 1 μm
-    pub const MID_IR: Wavelength = 5000.0;     // 5 μm
-    pub const FAR_IR: Wavelength = 10000.0;    // 10 μm
+    pub const NEAR_IR: Wavelength = 1000.0; // 1 μm
+    pub const MID_IR: Wavelength = 5000.0; // 5 μm
+    pub const FAR_IR: Wavelength = 10000.0; // 10 μm
 
     /// Sample UV spectrum (100-400nm) - Steel rainbow region!
     /// This is where steel becomes transparent

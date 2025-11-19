@@ -2,6 +2,8 @@
 // Based on "Physically-Based Simulation of Rainbows" (SIGGRAPH 2012)
 // Uses pre-computed phase function (LUT) for scattering angle -> intensity mapping
 
+const MAX_FALSE_COLOR_STOPS: u32 = 16u;
+
 struct ViewerUniform {
     camera_pos: vec3<f32>,
     _pad0: f32,
@@ -27,10 +29,10 @@ struct ViewerUniform {
     tex_height: u32,
     debug_mode: u32,
     march_steps: u32,
-    channel_r: f32,
-    channel_g: f32,
-    channel_b: f32,
-    _pad5: f32,
+    channel_wavelengths: vec4<f32>,
+    false_color_count: u32,
+    _pad5: vec3<u32>,
+    false_color_data: array<vec4<f32>, MAX_FALSE_COLOR_STOPS>,
 }
 
 @group(0) @binding(0) var lut_texture: texture_2d<f32>;
@@ -210,10 +212,11 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
         }
     }
 
-    // Sample phase function for RGB channels
-    let intensity_r = sample_phase_function(lut_angle, params.channel_r);
-    let intensity_g = sample_phase_function(lut_angle, params.channel_g);
-    let intensity_b = sample_phase_function(lut_angle, params.channel_b);
+    // Pre-sample reference channels (debug + fallback)
+    let channels = params.channel_wavelengths;
+    let intensity_r = sample_phase_function(lut_angle, channels.x);
+    let intensity_g = sample_phase_function(lut_angle, channels.y);
+    let intensity_b = sample_phase_function(lut_angle, channels.z);
 
     // Debug modes 1-3: Individual channels
     if (params.debug_mode == 1u) {
@@ -226,8 +229,22 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
         return vec4<f32>(0.0, 0.0, intensity_b, 1.0) * params.exposure;
     }
 
-    // Normal rendering: combine all channels
+    // Normal rendering
     var color = vec3<f32>(intensity_r, intensity_g, intensity_b);
+
+    if (params.false_color_count > 0u) {
+        color = vec3<f32>(0.0);
+        var i: u32 = 0u;
+        loop {
+            if (i >= params.false_color_count) {
+                break;
+            }
+            let stop = params.false_color_data[i];
+            let intensity = sample_phase_function(lut_angle, stop.x);
+            color += intensity * stop.yzw;
+            i = i + 1u;
+        }
+    }
 
     // Apply exposure
     color *= params.exposure;

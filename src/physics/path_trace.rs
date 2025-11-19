@@ -1,9 +1,8 @@
+use crate::{Circle, GpuContext, Ray};
 /// Ray path tracing through a circular particle
 /// Tracks entry, internal reflection, and exit events
-
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
-use crate::{GpuContext, Ray, Circle};
 
 /// Input for path tracing computation
 #[repr(C)]
@@ -64,19 +63,19 @@ pub struct PathTraceResult {
     pub event0_point: [f32; 2],
     pub event0_direction: [f32; 2],
     pub event0_type: u32,
-    pub _padding0: u32,  // Align next vec2
+    pub _padding0: u32, // Align next vec2
 
     // Event 1: Internal reflection
     pub event1_point: [f32; 2],
     pub event1_direction: [f32; 2],
     pub event1_type: u32,
-    pub _padding1: u32,  // Align next vec2
+    pub _padding1: u32, // Align next vec2
 
     // Event 2: Exit (refraction out of particle)
     pub event2_point: [f32; 2],
     pub event2_direction: [f32; 2],
     pub event2_type: u32,
-    pub _padding2: u32,  // Align next field
+    pub _padding2: u32, // Align next field
 
     pub num_events: u32,
     pub _padding3: u32,
@@ -115,17 +114,21 @@ pub async fn compute_path_traces(
 ) -> Vec<PathTraceResult> {
     let shader_code = include_str!("../shaders/path_trace.wgsl");
 
-    let shader_module = gpu.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Path Trace Shader"),
-        source: wgpu::ShaderSource::Wgsl(shader_code.into()),
-    });
+    let shader_module = gpu
+        .device
+        .create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Path Trace Shader"),
+            source: wgpu::ShaderSource::Wgsl(shader_code.into()),
+        });
 
     // Create input buffer
-    let input_buffer = gpu.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("Path Trace Input Buffer"),
-        contents: bytemuck::cast_slice(inputs),
-        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-    });
+    let input_buffer = gpu
+        .device
+        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Path Trace Input Buffer"),
+            contents: bytemuck::cast_slice(inputs),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
 
     // Create output buffer
     let output_size = (inputs.len() * std::mem::size_of::<PathTraceResult>()) as u64;
@@ -145,31 +148,33 @@ pub async fn compute_path_traces(
     });
 
     // Create bind group layout
-    let bind_group_layout = gpu.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("Path Trace Bind Group Layout"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
+    let bind_group_layout = gpu
+        .device
+        .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Path Trace Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
                 },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: false },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
                 },
-                count: None,
-            },
-        ],
-    });
+            ],
+        });
 
     // Create bind group
     let bind_group = gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -188,26 +193,32 @@ pub async fn compute_path_traces(
     });
 
     // Create pipeline layout
-    let pipeline_layout = gpu.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("Path Trace Pipeline Layout"),
-        bind_group_layouts: &[&bind_group_layout],
-        push_constant_ranges: &[],
-    });
+    let pipeline_layout = gpu
+        .device
+        .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Path Trace Pipeline Layout"),
+            bind_group_layouts: &[&bind_group_layout],
+            push_constant_ranges: &[],
+        });
 
     // Create compute pipeline
-    let compute_pipeline = gpu.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("Path Trace Pipeline"),
-        layout: Some(&pipeline_layout),
-        module: &shader_module,
-        entry_point: "main",
-        compilation_options: Default::default(),
-        cache: None,
-    });
+    let compute_pipeline = gpu
+        .device
+        .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("Path Trace Pipeline"),
+            layout: Some(&pipeline_layout),
+            module: &shader_module,
+            entry_point: "main",
+            compilation_options: Default::default(),
+            cache: None,
+        });
 
     // Create command encoder and dispatch compute shader
-    let mut encoder = gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("Path Trace Command Encoder"),
-    });
+    let mut encoder = gpu
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Path Trace Command Encoder"),
+        });
 
     {
         let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {

@@ -1,9 +1,10 @@
 use std::{env, fs, sync::Arc, time::Instant};
 
+use crate::lut::{FalseColorStop, LutConfig};
 use anyhow::{anyhow, Result};
 use bytemuck::{Pod, Zeroable};
 use chrono::Local;
-use crate::lut::{FalseColorStop, LutConfig};
+use log::warn;
 use serde::Deserialize;
 use wgpu::util::DeviceExt;
 use wgpu::{SurfaceConfiguration, SurfaceError};
@@ -12,6 +13,8 @@ use winit::event::*;
 use winit::event_loop::EventLoop;
 use winit::keyboard::{Key, NamedKey};
 use winit::window::WindowBuilder;
+
+const MAX_FALSE_COLOR_STOPS: usize = 16;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
@@ -85,6 +88,10 @@ struct ViewerUniform {
     march_steps: u32,
 
     channel_wavelengths: [f32; 4],
+    false_color_count: u32,
+    _pad_fc: [u32; 3],
+    false_color_data: [[f32; 4]; MAX_FALSE_COLOR_STOPS],
+    _pad_end: [f32; 4],
 }
 
 struct Camera {
@@ -117,11 +124,7 @@ impl Camera {
 
     fn forward(&self) -> [f32; 3] {
         let cp = self.pitch.cos();
-        let dir = [
-            cp * self.yaw.sin(),
-            self.pitch.sin(),
-            cp * self.yaw.cos(),
-        ];
+        let dir = [cp * self.yaw.sin(), self.pitch.sin(), cp * self.yaw.cos()];
         normalize(dir)
     }
 
@@ -174,8 +177,8 @@ struct ViewerState {
     camera: Camera,
     initial_camera_pos: [f32; 3],
     initial_look_at: [f32; 3],
-    sun_elevation: f32,  // degrees
-    sun_azimuth: f32,    // degrees
+    sun_elevation: f32, // degrees
+    sun_azimuth: f32,   // degrees
 
     // Controls
     exposure_multiplier: f32,
@@ -316,8 +319,9 @@ impl ViewerState {
         // No particle cloud needed - phase function approach!
 
         let channel_wavelengths = select_channel_wavelengths(&metadata);
-        let angle_range = metadata.angle_max_deg - metadata.angle_min_deg;
-        let wavelength_range = metadata.wavelength_max_nm - metadata.wavelength_min_nm;
+        let (false_color_data, false_color_count) = pack_false_color_data(&metadata);
+        let (wavelength_min, wavelength_range) = resolve_wavelength_axis(&metadata, &lut_config);
+        let (angle_min_deg, angle_range_deg) = resolve_angle_axis(&metadata, &lut_config);
 
         let march_steps = 64;
 
@@ -338,10 +342,10 @@ impl ViewerState {
             viewport_height: size.height as f32,
             fov: camera.fov,
             exposure: metadata.exposure,
-            wavelength_min: metadata.wavelength_min_nm,
+            wavelength_min,
             wavelength_range,
-            angle_min_deg: metadata.angle_min_deg,
-            angle_range_deg: angle_range,
+            angle_min_deg,
+            angle_range_deg,
             tex_width: lut_width,
             tex_height: lut_height,
             debug_mode: 0,
@@ -352,6 +356,10 @@ impl ViewerState {
                 channel_wavelengths[2],
                 0.0,
             ],
+            false_color_count,
+            _pad_fc: [0; 3],
+            false_color_data,
+            _pad_end: [0.0; 4],
         };
 
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -453,8 +461,14 @@ impl ViewerState {
         let now = Instant::now();
         println!("\n=== Iron Rainbow 3D Viewer ===");
         println!("LUT: {}", lut_config.output.texture_path);
-        println!("Wavelength: {:.0}-{:.0} nm", metadata.wavelength_min_nm, metadata.wavelength_max_nm);
-        println!("Angle: {:.0}°-{:.0}°", metadata.angle_min_deg, metadata.angle_max_deg);
+        println!(
+            "Wavelength: {:.0}-{:.0} nm",
+            metadata.wavelength_min_nm, metadata.wavelength_max_nm
+        );
+        println!(
+            "Angle: {:.0}°-{:.0}°",
+            metadata.angle_min_deg, metadata.angle_max_deg
+        );
         println!("Droplet Radius: 100m (visualization scale)");
         println!("\n=== Orbit Camera Controls ===");
         println!("  Mouse Drag - Rotate around droplet");
@@ -590,26 +604,40 @@ impl ViewerState {
         println!("FPS: {:.1}", self.fps);
         println!("\n[Camera]");
         println!("  Position: [{:.1}, {:.1}, {:.1}]", pos[0], pos[1], pos[2]);
-        println!("  Forward:  [{:.3}, {:.3}, {:.3}]", forward[0], forward[1], forward[2]);
-        println!("  Yaw: {:.1}°, Pitch: {:.1}°",
-            self.camera.yaw.to_degrees(), self.camera.pitch.to_degrees());
+        println!(
+            "  Forward:  [{:.3}, {:.3}, {:.3}]",
+            forward[0], forward[1], forward[2]
+        );
+        println!(
+            "  Yaw: {:.1}°, Pitch: {:.1}°",
+            self.camera.yaw.to_degrees(),
+            self.camera.pitch.to_degrees()
+        );
 
         println!("\n[Sun]");
-        println!("  Elevation: {:.1}°, Azimuth: {:.1}°", self.sun_elevation, self.sun_azimuth);
+        println!(
+            "  Elevation: {:.1}°, Azimuth: {:.1}°",
+            self.sun_elevation, self.sun_azimuth
+        );
         println!("  Direction: [{:.3}, {:.3}, {:.3}]", sun[0], sun[1], sun[2]);
 
         println!("\n[Droplet Sphere]");
-        println!("  Center: [{:.1}, {:.1}, {:.1}]", droplet[0], droplet[1], droplet[2]);
+        println!(
+            "  Center: [{:.1}, {:.1}, {:.1}]",
+            droplet[0], droplet[1], droplet[2]
+        );
         println!("  Radius: {:.1}m", self.uniform.droplet_radius);
 
         println!("\n[Rendering]");
         println!("  Exposure: {:.2}x", self.exposure_multiplier);
         println!("  March Steps: {}", self.march_steps);
         println!("  Debug Mode: {}", self.debug_mode);
-        println!("  Channel λ: R={:.1}nm, G={:.1}nm, B={:.1}nm",
+        println!(
+            "  Channel λ: R={:.1}nm, G={:.1}nm, B={:.1}nm",
             self.uniform.channel_wavelengths[0],
             self.uniform.channel_wavelengths[1],
-            self.uniform.channel_wavelengths[2]);
+            self.uniform.channel_wavelengths[2]
+        );
         println!("============================\n");
     }
 
@@ -675,157 +703,165 @@ pub fn run(config_override: Option<&str>) -> Result<()> {
     let mut state = pollster::block_on(ViewerState::new(window, config_path))?;
 
     event_loop.run(move |event, target| match event {
-        Event::WindowEvent { window_id, event } if window_id == state.window().id() => match event
-        {
-            WindowEvent::CloseRequested => {
-                target.exit();
-                return;
-            }
-            WindowEvent::Resized(size) => state.resize(size),
-            WindowEvent::ScaleFactorChanged { .. } => {
-                state.resize(state.window().inner_size());
-            }
-            WindowEvent::KeyboardInput {
-                event:
-                    KeyEvent {
-                        logical_key,
-                        state: key_state,
-                        ..
-                    },
-                ..
-            } => {
-                if key_state == ElementState::Pressed {
-                    match logical_key {
-                        Key::Character(ref ch) => {
-                            let ch_lower = ch.to_lowercase();
-                            match ch_lower.as_str() {
-                                "q" | "e" => {
-                                    state.keys_pressed.insert(ch_lower.to_string());
-                                }
-                                "w" | "a" | "s" | "d" => {
-                                    state.keys_pressed.insert(ch_lower.to_string());
-                                }
-                                "r" => {
-                                    state.camera.reset(state.initial_camera_pos, state.initial_look_at);
-                                    println!("Camera reset to default position");
-                                }
-                                "p" => state.print_status(),
-                                "0" => {
-                                    state.uniform.debug_mode = 0;
-                                    println!("Debug: Normal rendering");
-                                }
-                                "1" => {
-                                    state.uniform.debug_mode = 1;
-                                    println!("Debug: R channel only");
-                                }
-                                "2" => {
-                                    state.uniform.debug_mode = 2;
-                                    println!("Debug: G channel only");
-                                }
-                                "3" => {
-                                    state.uniform.debug_mode = 3;
-                                    println!("Debug: B channel only");
-                                }
-                                "4" => {
-                                    state.uniform.debug_mode = 4;
-                                    println!("Debug: LUT range check (green=in, red=out)");
-                                }
-                                "5" => {
-                                    state.uniform.debug_mode = 5;
-                                    println!("Debug: Anti-solar angle visualization");
-                                }
-                                "6" => {
-                                    state.uniform.debug_mode = 6;
-                                    println!("Debug: March distance visualization");
-                                }
-                                "7" => {
-                                    state.uniform.debug_mode = 7;
-                                    println!("Debug: Sphere hit test (red=hit, black=miss)");
-                                }
-                                "8" => {
-                                    state.uniform.debug_mode = 8;
-                                    println!("Debug: Ray direction");
-                                }
-                                "9" => {
-                                    state.uniform.debug_mode = 9;
-                                    println!("Debug: Test pattern (gradient)");
-                                }
-                                "=" | "+" => {
-                                    state.exposure_multiplier *= 1.2;
-                                    println!("Exposure: {:.2}x", state.exposure_multiplier);
-                                }
-                                "-" | "_" => {
-                                    state.exposure_multiplier /= 1.2;
-                                    println!("Exposure: {:.2}x", state.exposure_multiplier);
-                                }
-                                "[" => {
-                                    state.march_steps = (state.march_steps / 2).max(8);
-                                    println!("March steps: {}", state.march_steps);
-                                }
-                                "]" => {
-                                    state.march_steps = (state.march_steps * 2).min(512);
-                                    println!("March steps: {}", state.march_steps);
-                                }
-                                _ => {}
-                            }
-                        }
-                        Key::Named(NamedKey::ArrowUp) => {
-                            state.sun_elevation = (state.sun_elevation + 5.0).min(90.0);
-                            println!("Sun elevation: {:.1}°", state.sun_elevation);
-                        }
-                        Key::Named(NamedKey::ArrowDown) => {
-                            state.sun_elevation = (state.sun_elevation - 5.0).max(-90.0);
-                            println!("Sun elevation: {:.1}°", state.sun_elevation);
-                        }
-                        Key::Named(NamedKey::ArrowLeft) => {
-                            state.sun_azimuth = (state.sun_azimuth - 5.0 + 360.0) % 360.0;
-                            println!("Sun azimuth: {:.1}°", state.sun_azimuth);
-                        }
-                        Key::Named(NamedKey::ArrowRight) => {
-                            state.sun_azimuth = (state.sun_azimuth + 5.0) % 360.0;
-                            println!("Sun azimuth: {:.1}°", state.sun_azimuth);
-                        }
-                        _ => {}
-                    }
-                } else if key_state == ElementState::Released {
-                    if let Key::Character(ref ch) = logical_key {
-                        let ch_lower = ch.to_lowercase();
-                        state.keys_pressed.remove(&ch_lower.to_string());
-                    }
+        Event::WindowEvent { window_id, event } if window_id == state.window().id() => {
+            match event {
+                WindowEvent::CloseRequested => {
+                    target.exit();
+                    return;
                 }
-            }
-            WindowEvent::MouseInput {
-                state: ElementState::Pressed,
-                button: MouseButton::Left,
-                ..
-            } => {
-                // Capture mouse for camera look
-                let _ = state.window.set_cursor_grab(winit::window::CursorGrabMode::Locked);
-                state.window.set_cursor_visible(false);
-            }
-            WindowEvent::KeyboardInput {
-                event: KeyEvent {
-                    logical_key: Key::Named(NamedKey::Escape),
-                    state: ElementState::Pressed,
+                WindowEvent::Resized(size) => state.resize(size),
+                WindowEvent::ScaleFactorChanged { .. } => {
+                    state.resize(state.window().inner_size());
+                }
+                WindowEvent::KeyboardInput {
+                    event:
+                        KeyEvent {
+                            logical_key,
+                            state: key_state,
+                            ..
+                        },
                     ..
-                },
-                ..
-            } => {
-                // Release mouse
-                let _ = state.window.set_cursor_grab(winit::window::CursorGrabMode::None);
-                state.window.set_cursor_visible(true);
-            }
-            WindowEvent::RedrawRequested => {
-                state.update();
-                match state.render() {
-                    Ok(()) => {}
-                    Err(SurfaceError::Lost) => state.resize(state.size),
-                    Err(SurfaceError::OutOfMemory) => target.exit(),
-                    Err(e) => eprintln!("Render error: {:?}", e),
+                } => {
+                    if key_state == ElementState::Pressed {
+                        match logical_key {
+                            Key::Character(ref ch) => {
+                                let ch_lower = ch.to_lowercase();
+                                match ch_lower.as_str() {
+                                    "q" | "e" => {
+                                        state.keys_pressed.insert(ch_lower.to_string());
+                                    }
+                                    "w" | "a" | "s" | "d" => {
+                                        state.keys_pressed.insert(ch_lower.to_string());
+                                    }
+                                    "r" => {
+                                        state
+                                            .camera
+                                            .reset(state.initial_camera_pos, state.initial_look_at);
+                                        println!("Camera reset to default position");
+                                    }
+                                    "p" => state.print_status(),
+                                    "0" => {
+                                        state.uniform.debug_mode = 0;
+                                        println!("Debug: Normal rendering");
+                                    }
+                                    "1" => {
+                                        state.uniform.debug_mode = 1;
+                                        println!("Debug: R channel only");
+                                    }
+                                    "2" => {
+                                        state.uniform.debug_mode = 2;
+                                        println!("Debug: G channel only");
+                                    }
+                                    "3" => {
+                                        state.uniform.debug_mode = 3;
+                                        println!("Debug: B channel only");
+                                    }
+                                    "4" => {
+                                        state.uniform.debug_mode = 4;
+                                        println!("Debug: LUT range check (green=in, red=out)");
+                                    }
+                                    "5" => {
+                                        state.uniform.debug_mode = 5;
+                                        println!("Debug: Anti-solar angle visualization");
+                                    }
+                                    "6" => {
+                                        state.uniform.debug_mode = 6;
+                                        println!("Debug: March distance visualization");
+                                    }
+                                    "7" => {
+                                        state.uniform.debug_mode = 7;
+                                        println!("Debug: Sphere hit test (red=hit, black=miss)");
+                                    }
+                                    "8" => {
+                                        state.uniform.debug_mode = 8;
+                                        println!("Debug: Ray direction");
+                                    }
+                                    "9" => {
+                                        state.uniform.debug_mode = 9;
+                                        println!("Debug: Test pattern (gradient)");
+                                    }
+                                    "=" | "+" => {
+                                        state.exposure_multiplier *= 1.2;
+                                        println!("Exposure: {:.2}x", state.exposure_multiplier);
+                                    }
+                                    "-" | "_" => {
+                                        state.exposure_multiplier /= 1.2;
+                                        println!("Exposure: {:.2}x", state.exposure_multiplier);
+                                    }
+                                    "[" => {
+                                        state.march_steps = (state.march_steps / 2).max(8);
+                                        println!("March steps: {}", state.march_steps);
+                                    }
+                                    "]" => {
+                                        state.march_steps = (state.march_steps * 2).min(512);
+                                        println!("March steps: {}", state.march_steps);
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            Key::Named(NamedKey::ArrowUp) => {
+                                state.sun_elevation = (state.sun_elevation + 5.0).min(90.0);
+                                println!("Sun elevation: {:.1}°", state.sun_elevation);
+                            }
+                            Key::Named(NamedKey::ArrowDown) => {
+                                state.sun_elevation = (state.sun_elevation - 5.0).max(-90.0);
+                                println!("Sun elevation: {:.1}°", state.sun_elevation);
+                            }
+                            Key::Named(NamedKey::ArrowLeft) => {
+                                state.sun_azimuth = (state.sun_azimuth - 5.0 + 360.0) % 360.0;
+                                println!("Sun azimuth: {:.1}°", state.sun_azimuth);
+                            }
+                            Key::Named(NamedKey::ArrowRight) => {
+                                state.sun_azimuth = (state.sun_azimuth + 5.0) % 360.0;
+                                println!("Sun azimuth: {:.1}°", state.sun_azimuth);
+                            }
+                            _ => {}
+                        }
+                    } else if key_state == ElementState::Released {
+                        if let Key::Character(ref ch) = logical_key {
+                            let ch_lower = ch.to_lowercase();
+                            state.keys_pressed.remove(&ch_lower.to_string());
+                        }
+                    }
                 }
+                WindowEvent::MouseInput {
+                    state: ElementState::Pressed,
+                    button: MouseButton::Left,
+                    ..
+                } => {
+                    // Capture mouse for camera look
+                    let _ = state
+                        .window
+                        .set_cursor_grab(winit::window::CursorGrabMode::Locked);
+                    state.window.set_cursor_visible(false);
+                }
+                WindowEvent::KeyboardInput {
+                    event:
+                        KeyEvent {
+                            logical_key: Key::Named(NamedKey::Escape),
+                            state: ElementState::Pressed,
+                            ..
+                        },
+                    ..
+                } => {
+                    // Release mouse
+                    let _ = state
+                        .window
+                        .set_cursor_grab(winit::window::CursorGrabMode::None);
+                    state.window.set_cursor_visible(true);
+                }
+                WindowEvent::RedrawRequested => {
+                    state.update();
+                    match state.render() {
+                        Ok(()) => {}
+                        Err(SurfaceError::Lost) => state.resize(state.size),
+                        Err(SurfaceError::OutOfMemory) => target.exit(),
+                        Err(e) => eprintln!("Render error: {:?}", e),
+                    }
+                }
+                _ => {}
             }
-            _ => {}
-        },
+        }
         Event::DeviceEvent {
             event: DeviceEvent::MouseMotion { delta },
             ..
@@ -841,6 +877,92 @@ pub fn run(config_override: Option<&str>) -> Result<()> {
     Ok(())
 }
 
+fn pack_false_color_data(metadata: &LutMetadata) -> ([[f32; 4]; MAX_FALSE_COLOR_STOPS], u32) {
+    let mut packed = [[0.0_f32; 4]; MAX_FALSE_COLOR_STOPS];
+    if metadata.false_color.is_empty() {
+        return (packed, 0);
+    }
+
+    let mut stops = metadata.false_color.clone();
+    stops.sort_by(|a, b| a.wavelength.partial_cmp(&b.wavelength).unwrap());
+
+    let count = stops.len().min(MAX_FALSE_COLOR_STOPS);
+    for (idx, stop) in stops.into_iter().take(MAX_FALSE_COLOR_STOPS).enumerate() {
+        packed[idx][0] = stop.wavelength;
+        packed[idx][1] = srgb_u8_to_linear(stop.color[0]);
+        packed[idx][2] = srgb_u8_to_linear(stop.color[1]);
+        packed[idx][3] = srgb_u8_to_linear(stop.color[2]);
+    }
+
+    (packed, count as u32)
+}
+
+fn srgb_u8_to_linear(value: u8) -> f32 {
+    let v = value as f32 / 255.0;
+    if v <= 0.04045 {
+        v / 12.92
+    } else {
+        ((v + 0.055) / 1.055).powf(2.4)
+    }
+}
+
+fn resolve_wavelength_axis(metadata: &LutMetadata, config: &LutConfig) -> (f32, f32) {
+    if let Some(axis) = normalize_axis(metadata.wavelength_min_nm, metadata.wavelength_max_nm) {
+        return axis;
+    }
+
+    if let Some(axis) = normalize_axis(config.grid.wavelength_min_nm, config.grid.wavelength_max_nm)
+    {
+        warn!(
+            "LUT metadata had invalid wavelength range; falling back to config ({:.1}–{:.1} nm)",
+            config.grid.wavelength_min_nm, config.grid.wavelength_max_nm
+        );
+        return axis;
+    }
+
+    warn!("Unable to determine valid wavelength axis, defaulting to 145–200 nm");
+    (145.0, 55.0)
+}
+
+fn resolve_angle_axis(metadata: &LutMetadata, config: &LutConfig) -> (f32, f32) {
+    if let Some((min, range)) = normalize_axis(metadata.angle_min_deg, metadata.angle_max_deg) {
+        if ranges_intersect(min, min + range, 0.0, 180.0) {
+            return (min, range);
+        } else {
+            warn!(
+                "Metadata angle window [{:.1}, {:.1}]° does not intersect physical scattering range; using config values",
+                metadata.angle_min_deg, metadata.angle_max_deg
+            );
+        }
+    }
+
+    if let Some(axis) = normalize_axis(config.grid.angle_min_deg, config.grid.angle_max_deg) {
+        return axis;
+    }
+
+    warn!("Unable to determine valid angle axis, defaulting to 0–180°");
+    (0.0, 180.0)
+}
+
+fn normalize_axis(min: f32, max: f32) -> Option<(f32, f32)> {
+    if !min.is_finite() || !max.is_finite() {
+        return None;
+    }
+    let (lo, hi) = if min <= max { (min, max) } else { (max, min) };
+    let range = hi - lo;
+    if range <= f32::EPSILON {
+        None
+    } else {
+        Some((lo, range))
+    }
+}
+
+fn ranges_intersect(a0: f32, a1: f32, b0: f32, b1: f32) -> bool {
+    let (a_lo, a_hi) = if a0 <= a1 { (a0, a1) } else { (a1, a0) };
+    let (b_lo, b_hi) = if b0 <= b1 { (b0, b1) } else { (b1, b0) };
+    a_hi >= b_lo && b_hi >= a_lo
+}
+
 fn select_channel_wavelengths(metadata: &LutMetadata) -> [f32; 3] {
     if let Some(custom) = &metadata.channel_wavelengths {
         if custom.len() >= 3 {
@@ -849,11 +971,7 @@ fn select_channel_wavelengths(metadata: &LutMetadata) -> [f32; 3] {
     }
 
     if metadata.false_color.len() >= 3 {
-        let mut stops: Vec<f32> = metadata
-            .false_color
-            .iter()
-            .map(|s| s.wavelength)
-            .collect();
+        let mut stops: Vec<f32> = metadata.false_color.iter().map(|s| s.wavelength).collect();
         stops.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let b = stops.first().cloned().unwrap_or(metadata.wavelength_min_nm);
         let g = stops[stops.len() / 2];
@@ -874,9 +992,9 @@ fn sun_direction(elevation_deg: f32, azimuth_deg: f32) -> [f32; 3] {
     let elev = elevation_deg.to_radians();
     let azim = (azimuth_deg - 90.0).to_radians(); // Rotate by 90° so 0° = +Z
 
-    let x = elev.cos() * azim.cos();  // cos(elev) * cos(azim-90)
-    let y = elev.sin();                // sin(elev)
-    let z = elev.cos() * azim.sin();  // cos(elev) * sin(azim-90)
+    let x = elev.cos() * azim.cos(); // cos(elev) * cos(azim-90)
+    let y = elev.sin(); // sin(elev)
+    let z = elev.cos() * azim.sin(); // cos(elev) * sin(azim-90)
 
     normalize([x, y, z])
 }

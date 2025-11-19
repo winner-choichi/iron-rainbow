@@ -1,8 +1,7 @@
 /// Snell's Law refraction computation on GPU
 /// Handles refraction and total internal reflection
-
 use crate::geometry::Ray;
-use crate::gpu::{GpuContext, ComputePipeline, BufferManager, execute_and_read};
+use crate::gpu::{execute_and_read, BufferManager, ComputePipeline, GpuContext};
 use crate::shaders;
 
 /// Input data for refraction calculation
@@ -13,8 +12,8 @@ pub struct RefractionInput {
     pub ray_direction: [f32; 2],
     pub intersection_point: [f32; 2],
     pub normal: [f32; 2],
-    pub n1: f32,  // Refractive index of incident medium
-    pub n2: f32,  // Refractive index of refracted medium
+    pub n1: f32, // Refractive index of incident medium
+    pub n2: f32, // Refractive index of refracted medium
     pub _padding1: f32,
     pub _padding2: f32,
 }
@@ -47,7 +46,7 @@ impl RefractionInput {
 pub struct RefractionResult {
     pub refracted_direction_x: f32,
     pub refracted_direction_y: f32,
-    pub total_internal_reflection: f32,  // 1.0 = TIR, 0.0 = normal refraction
+    pub total_internal_reflection: f32, // 1.0 = TIR, 0.0 = normal refraction
     pub reflected_direction_x: f32,
     pub reflected_direction_y: f32,
     pub _padding1: f32,
@@ -144,7 +143,8 @@ pub async fn compute_refractions(
     let inputs_buffer = BufferManager::create_storage_buffer_init(device, "Inputs Buffer", inputs);
 
     let results_size = (inputs.len() * std::mem::size_of::<RefractionResult>()) as u64;
-    let results_buffer = BufferManager::create_storage_buffer(device, "Results Buffer", results_size);
+    let results_buffer =
+        BufferManager::create_storage_buffer(device, "Results Buffer", results_size);
 
     // Create bind group
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -172,5 +172,6 @@ pub async fn compute_refractions(
         &results_buffer,
         workgroups,
         inputs.len(),
-    ).await
+    )
+    .await
 }

@@ -6,7 +6,7 @@
 pub struct Circle {
     pub center: [f32; 2],
     pub radius: f32,
-    pub _padding: f32,  // Align to 16 bytes for GPU
+    pub _padding: f32, // Align to 16 bytes for GPU
 }
 
 impl Circle {

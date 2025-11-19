@@ -1,3 +1,4 @@
+use image::Rgb;
 /// Step 1.5: Drude-Lorentz Model for Steel (Semi-empirical)
 ///
 /// Visualizes complex refractive index for liquid steel:
@@ -12,9 +13,7 @@
 /// → UV rainbow formation possible!
 ///
 /// Run with: cargo run --example step_1_5_drude_steel
-
-use iron_rainbow::{DrudeModel, Renderer2D, wavelengths};
-use image::Rgb;
+use iron_rainbow::{wavelengths, DrudeModel, Renderer2D};
 
 fn main() {
     println!("Step 1.5: Drude Model for Liquid Steel");
@@ -23,17 +22,22 @@ fn main() {
     let steel = DrudeModel::steel();
 
     println!("Steel Drude parameters:");
-    println!("  Plasma frequency (ωₚ): {:.2e} rad/s", steel.plasma_frequency);
+    println!(
+        "  Plasma frequency (ωₚ): {:.2e} rad/s",
+        steel.plasma_frequency
+    );
     println!("  Damping (γ):           {:.2e} rad/s\n", steel.damping);
 
     // Sample wavelengths: UV spectrum (100-400nm)
     let num_samples = 200;
     let wavelengths_nm = wavelengths::sample_uv(num_samples);
 
-    println!("Sampling {} wavelengths from {} nm (Deep UV) to {} nm (Near UV)\n",
-             num_samples,
-             wavelengths::DEEP_UV,
-             wavelengths::VIOLET);
+    println!(
+        "Sampling {} wavelengths from {} nm (Deep UV) to {} nm (Near UV)\n",
+        num_samples,
+        wavelengths::DEEP_UV,
+        wavelengths::VIOLET
+    );
 
     // Calculate n and k for each wavelength
     let mut n_values = Vec::new();
@@ -51,10 +55,15 @@ fn main() {
     let test_uv = [100.0, 137.0, 188.0, 192.0, 199.0, 200.0, 300.0, 380.0];
     for wl in test_uv.iter() {
         let (n, k) = steel.complex_index(*wl);
-        let region = if *wl < 180.0 { "Deep UV" }
-                    else if *wl < 280.0 { "UV-C" }
-                    else if *wl < 315.0 { "UV-B" }
-                    else { "UV-A" };
+        let region = if *wl < 180.0 {
+            "Deep UV"
+        } else if *wl < 280.0 {
+            "UV-C"
+        } else if *wl < 315.0 {
+            "UV-B"
+        } else {
+            "UV-A"
+        };
         println!("  λ = {} nm ({}): n = {:.3}, k = {:.3}", wl, region, n, k);
     }
 
@@ -66,14 +75,17 @@ fn main() {
     }
 
     // Analyze UV transparency
-    let (_n_uv, k_uv) = steel.complex_index(100.0);    // Deep UV
-    let (_n_vis, k_vis) = steel.complex_index(500.0);  // Green light
+    let (_n_uv, k_uv) = steel.complex_index(100.0); // Deep UV
+    let (_n_vis, k_vis) = steel.complex_index(500.0); // Green light
 
     println!("\n✓ Discovery:");
     println!("  Deep UV (100nm): k = {:.3} (LOW → transparent!)", k_uv);
     println!("  Visible (500nm): k = {:.3} (HIGH → opaque)", k_vis);
-    println!("  k ratio (UV/Vis): {:.6} (UV is {}x more transparent)",
-             k_uv / k_vis, k_vis / k_uv);
+    println!(
+        "  k ratio (UV/Vis): {:.6} (UV is {}x more transparent)",
+        k_uv / k_vis,
+        k_vis / k_uv
+    );
 
     println!("\n  → Steel becomes transparent below plasma wavelength (~137nm)");
     println!("  → UV rainbow formation is possible!");
@@ -85,8 +97,8 @@ fn main() {
     renderer.fill_rect(-5.0, 5.0, 10.0, 10.0, bg_color);
 
     // Colors
-    let n_color = Rgb([0, 120, 255]);      // Blue for n
-    let k_color = Rgb([255, 80, 0]);       // Orange for k
+    let n_color = Rgb([0, 120, 255]); // Blue for n
+    let k_color = Rgb([255, 80, 0]); // Orange for k
     let axis_color = Rgb([100, 100, 100]);
     let grid_color = Rgb([220, 220, 220]);
 
@@ -98,7 +110,9 @@ fn main() {
 
     // Map wavelength to x (linear scale)
     let wl_to_x = |wl: f32| {
-        x_min + (wl - wavelengths::DEEP_UV) / (wavelengths::VIOLET - wavelengths::DEEP_UV) * (x_max - x_min)
+        x_min
+            + (wl - wavelengths::DEEP_UV) / (wavelengths::VIOLET - wavelengths::DEEP_UV)
+                * (x_max - x_min)
     };
 
     // Find max n and k for scaling
@@ -144,7 +158,13 @@ fn main() {
 
     // Title (smaller, higher)
     let title_color = Rgb([40, 40, 40]);
-    renderer.draw_text(-3.5, 5.2, "Drude-Lorentz: Steel Optical Constants", 0.28, title_color);
+    renderer.draw_text(
+        -3.5,
+        5.2,
+        "Drude-Lorentz: Steel Optical Constants",
+        0.28,
+        title_color,
+    );
 
     // Axis labels (smaller, better position)
     renderer.draw_text(-1.5, -5.3, "Wavelength (nm)", 0.22, axis_color);

@@ -1,3 +1,4 @@
+use image::Rgb;
 /// Step 1.6: Absorption Calculation (Beer-Lambert Law)
 ///
 /// Demonstrates wavelength-dependent absorption through liquid steel (UV):
@@ -9,12 +10,10 @@
 /// Run with: cargo run --example step_1_6_absorption [radius_μm]
 ///   e.g. `cargo run --example step_1_6_absorption` (defaults to 1.0 μm)
 ///        `cargo run --example step_1_6_absorption -- 0.1` (100 nm droplet)
-
 use iron_rainbow::{
-    path_length_2d, Circle, DrudeModel,
-    GpuContext, PathTraceInput, Renderer2D, compute_path_traces, wavelengths, Ray,
+    compute_path_traces, path_length_2d, wavelengths, Circle, DrudeModel, GpuContext,
+    PathTraceInput, Ray, Renderer2D,
 };
-use image::Rgb;
 use std::f32::consts::PI;
 
 #[tokio::main]
@@ -26,7 +25,7 @@ async fn main() {
     let radius = std::env::args()
         .nth(1)
         .and_then(|s| s.parse::<f32>().ok())
-        .unwrap_or(0.03);  // 30 nm default (same as Step 1.7)
+        .unwrap_or(0.03); // 30 nm default (same as Step 1.7)
 
     let gpu = GpuContext::new().await;
     println!("GPU: {}\n", gpu.device_name());
@@ -72,9 +71,18 @@ async fn main() {
     }
 
     println!("Path traced successfully:");
-    println!("  Entry:  ({:.3}, {:.3})", result.event0_point[0], result.event0_point[1]);
-    println!("  Bounce: ({:.3}, {:.3})", result.event1_point[0], result.event1_point[1]);
-    println!("  Exit:   ({:.3}, {:.3})\n", result.event2_point[0], result.event2_point[1]);
+    println!(
+        "  Entry:  ({:.3}, {:.3})",
+        result.event0_point[0], result.event0_point[1]
+    );
+    println!(
+        "  Bounce: ({:.3}, {:.3})",
+        result.event1_point[0], result.event1_point[1]
+    );
+    println!(
+        "  Exit:   ({:.3}, {:.3})\n",
+        result.event2_point[0], result.event2_point[1]
+    );
 
     // Calculate path lengths
     let path1 = path_length_2d(result.event0_point, result.event1_point);
@@ -100,8 +108,8 @@ async fn main() {
         .map(|wl| {
             let (_, k) = steel.complex_index(*wl);
             // α = 4πk/λ (convert λ from nm to μm)
-            let alpha = 4.0 * PI * k / (*wl * 0.001);  // wl in nm → μm
-            // Beer-Lambert: T = exp(-α × d)
+            let alpha = 4.0 * PI * k / (*wl * 0.001); // wl in nm → μm
+                                                      // Beer-Lambert: T = exp(-α × d)
             (-alpha * total_path).exp()
         })
         .collect();
@@ -110,20 +118,31 @@ async fn main() {
     println!("Sample transmittances (UV spectrum):");
     for i in (0..test_wavelengths.len()).step_by(10) {
         let (n, k) = steel.complex_index(test_wavelengths[i]);
-        println!("  λ = {:.0} nm: n = {:.4}, k = {:.4}, T = {:.6} ({:.4}%)",
-                 test_wavelengths[i],
-                 n,
-                 k,
-                 transmittances[i],
-                 transmittances[i] * 100.0);
+        println!(
+            "  λ = {:.0} nm: n = {:.4}, k = {:.4}, T = {:.6} ({:.4}%)",
+            test_wavelengths[i],
+            n,
+            k,
+            transmittances[i],
+            transmittances[i] * 100.0
+        );
     }
 
     // Find maximum transmittance for comparison
     let max_t = transmittances.iter().cloned().fold(0.0f32, f32::max);
-    println!("\nMaximum transmittance: {:.6} ({:.4}%) at deep UV", max_t, max_t * 100.0);
+    println!(
+        "\nMaximum transmittance: {:.6} ({:.4}%) at deep UV",
+        max_t,
+        max_t * 100.0
+    );
     if max_t < 1e-4 {
-        println!("  → With radius = {:.2} μm the particle is effectively opaque across 100-400nm", circle.radius);
-        println!("  → Reduce particle radius (e.g., 0.05-0.10 μm) to explore non-zero transmittance\n");
+        println!(
+            "  → With radius = {:.2} μm the particle is effectively opaque across 100-400nm",
+            circle.radius
+        );
+        println!(
+            "  → Reduce particle radius (e.g., 0.05-0.10 μm) to explore non-zero transmittance\n"
+        );
     } else {
         println!("  → Non-zero transmission achieved; inspect curve for wavelength dependence\n");
     }
@@ -136,7 +155,7 @@ async fn main() {
     renderer.fill_rect(-5.0, 5.0, 10.0, 10.0, bg_color);
 
     // Colors
-    let curve_color = Rgb([138, 43, 226]);  // Purple for UV
+    let curve_color = Rgb([138, 43, 226]); // Purple for UV
     let axis_color = Rgb([100, 100, 100]);
     let grid_color = Rgb([220, 220, 220]);
 
@@ -148,7 +167,9 @@ async fn main() {
 
     // Map wavelength to x (UV range: 100-400nm)
     let wl_to_x = |wl: f32| {
-        x_min + (wl - wavelengths::UV_MIN) / (wavelengths::UV_MAX - wavelengths::UV_MIN) * (x_max - x_min)
+        x_min
+            + (wl - wavelengths::UV_MIN) / (wavelengths::UV_MAX - wavelengths::UV_MIN)
+                * (x_max - x_min)
     };
 
     // Map transmittance to y (log scale for better visualization)
@@ -156,7 +177,7 @@ async fn main() {
         if t < 1e-10 {
             y_min
         } else {
-            let log_t = t.log10();  // -10 to 0
+            let log_t = t.log10(); // -10 to 0
             y_min + (log_t + 10.0) / 10.0 * (y_max - y_min)
         }
     };
@@ -187,7 +208,13 @@ async fn main() {
 
     // Title (smaller, higher position)
     let title_color = Rgb([40, 40, 40]);
-    renderer.draw_text(-3.2, 5.2, "Beer-Lambert Absorption (UV Steel)", 0.28, title_color);
+    renderer.draw_text(
+        -3.2,
+        5.2,
+        "Beer-Lambert Absorption (UV Steel)",
+        0.28,
+        title_color,
+    );
 
     // Axis labels (smaller font, better position)
     renderer.draw_text(-1.5, -5.3, "Wavelength (nm)", 0.22, axis_color);
@@ -224,7 +251,10 @@ async fn main() {
     println!("  Purple curve: Beer-Lambert transmittance through steel");
     println!("\nPhysics:");
     println!("  T = exp(-α × d), where α = 4πk/λ");
-    println!("  Larger droplets (R = {:.2} μm) yield long paths (d ≈ {:.3} μm) → exp(-αd) ≈ 0", circle.radius, total_path);
+    println!(
+        "  Larger droplets (R = {:.2} μm) yield long paths (d ≈ {:.3} μm) → exp(-αd) ≈ 0",
+        circle.radius, total_path
+    );
     println!("  Shrinking the droplet scales d ∝ R, so UV transmittance rises once αd ≲ 5");
     println!("\n✓ Step 1.6 complete!");
 }

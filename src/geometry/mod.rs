@@ -1,7 +1,6 @@
-/// Geometric primitives for ray tracing simulation
-
-pub mod ray;
 pub mod circle;
+/// Geometric primitives for ray tracing simulation
+pub mod ray;
 
-pub use ray::Ray;
 pub use circle::Circle;
+pub use ray::Ray;

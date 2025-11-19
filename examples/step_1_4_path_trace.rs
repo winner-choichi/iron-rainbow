@@ -1,3 +1,4 @@
+use image::Rgb;
 /// Step 1.4: Ray Path Tracing with Internal Reflection
 ///
 /// Traces rays through a circular particle showing:
@@ -6,9 +7,9 @@
 /// - Exit refraction
 ///
 /// Run with: cargo run --example step_1_4_path_trace
-
-use iron_rainbow::{compute_path_traces, Circle, EventType, GpuContext, PathTraceInput, Ray, Renderer2D};
-use image::Rgb;
+use iron_rainbow::{
+    compute_path_traces, Circle, EventType, GpuContext, PathTraceInput, Ray, Renderer2D,
+};
 
 #[tokio::main]
 async fn main() {
@@ -24,11 +25,11 @@ async fn main() {
     let bg_color = Rgb([245, 250, 255]);
     let particle_color = Rgb([210, 230, 250]);
     let particle_outline = Rgb([100, 150, 200]);
-    let incident_color = Rgb([255, 140, 0]);      // Orange
-    let refracted_color = Rgb([0, 160, 255]);     // Cyan
-    let reflected_color = Rgb([255, 40, 120]);    // Pink
-    let exit_color = Rgb([100, 220, 100]);        // Green
-    let point_color = Rgb([0, 0, 0]);             // Black
+    let incident_color = Rgb([255, 140, 0]); // Orange
+    let refracted_color = Rgb([0, 160, 255]); // Cyan
+    let reflected_color = Rgb([255, 40, 120]); // Pink
+    let exit_color = Rgb([100, 220, 100]); // Green
+    let point_color = Rgb([0, 0, 0]); // Black
 
     // Fill background
     renderer.fill_rect(-3.0, 3.0, 6.0, 6.0, bg_color);
@@ -50,7 +51,12 @@ async fn main() {
     }
 
     // Draw particle outline
-    renderer.draw_circle(circle.center[0], circle.center[1], circle.radius, particle_outline);
+    renderer.draw_circle(
+        circle.center[0],
+        circle.center[1],
+        circle.radius,
+        particle_outline,
+    );
 
     // Refractive indices
     let n_air = 1.0_f32;
@@ -74,7 +80,7 @@ async fn main() {
         // Impact parameter = y coordinate of ray
         let b = impact_param * circle.radius;
         let ray_origin = [-2.5, b];
-        let ray_direction = [1.0, 0.0];  // Horizontal ray
+        let ray_direction = [1.0, 0.0]; // Horizontal ray
         let ray = Ray::new(ray_origin, ray_direction);
 
         test_cases.push((ray, *impact_param));
@@ -114,10 +120,12 @@ async fn main() {
                 point_color,
             );
 
-            println!("  Event 0: {:?} at ({:.3}, {:.3})",
-                     result.event0_type(),
-                     result.event0_point[0],
-                     result.event0_point[1]);
+            println!(
+                "  Event 0: {:?} at ({:.3}, {:.3})",
+                result.event0_type(),
+                result.event0_point[0],
+                result.event0_point[1]
+            );
         }
 
         // Draw refracted ray inside particle
@@ -137,10 +145,12 @@ async fn main() {
                 point_color,
             );
 
-            println!("  Event 1: {:?} at ({:.3}, {:.3})",
-                     result.event1_type(),
-                     result.event1_point[0],
-                     result.event1_point[1]);
+            println!(
+                "  Event 1: {:?} at ({:.3}, {:.3})",
+                result.event1_type(),
+                result.event1_point[0],
+                result.event1_point[1]
+            );
         }
 
         // Draw reflected ray inside particle (if TIR occurred)
@@ -166,10 +176,12 @@ async fn main() {
                 point_color,
             );
 
-            println!("  Event 2: {:?} at ({:.3}, {:.3})",
-                     result.event2_type(),
-                     result.event2_point[0],
-                     result.event2_point[1]);
+            println!(
+                "  Event 2: {:?} at ({:.3}, {:.3})",
+                result.event2_type(),
+                result.event2_point[0],
+                result.event2_point[1]
+            );
 
             // Draw exit ray
             renderer.draw_thick_line(

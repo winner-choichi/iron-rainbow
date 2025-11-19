@@ -1,17 +1,16 @@
+pub mod absorption;
+pub mod dispersion;
 /// Physics simulation algorithms
 /// Ray tracing, refraction, absorption, and material properties
-
 pub mod intersection;
-pub mod refraction;
 pub mod path_trace;
-pub mod dispersion;
-pub mod absorption;
+pub mod refraction;
 
-pub use intersection::{IntersectionResult, compute_intersections};
-pub use refraction::{RefractionInput, RefractionResult, compute_refractions};
-pub use path_trace::{PathTraceInput, PathTraceResult, EventType, compute_path_traces};
+pub use absorption::{absorbance, beer_lambert, path_length_2d, transmittance};
 pub use dispersion::{
-    DispersionModel, CauchyModel, SellmeierModel, DrudeModel,
-    Wavelength, RefractiveIndex, AbsorptionCoefficient, wavelengths,
+    wavelengths, AbsorptionCoefficient, CauchyModel, DispersionModel, DrudeModel, RefractiveIndex,
+    SellmeierModel, Wavelength,
 };
-pub use absorption::{beer_lambert, transmittance, absorbance, path_length_2d};
+pub use intersection::{compute_intersections, IntersectionResult};
+pub use path_trace::{compute_path_traces, EventType, PathTraceInput, PathTraceResult};
+pub use refraction::{compute_refractions, RefractionInput, RefractionResult};

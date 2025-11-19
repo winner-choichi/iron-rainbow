@@ -1,5 +1,4 @@
 /// Compute pipeline management for GPU shaders
-
 use wgpu::util::DeviceExt;
 
 pub struct ComputePipeline {
@@ -61,11 +60,7 @@ impl BufferManager {
     }
 
     /// Create a storage buffer for output (read-write)
-    pub fn create_storage_buffer(
-        device: &wgpu::Device,
-        label: &str,
-        size: u64,
-    ) -> wgpu::Buffer {
+    pub fn create_storage_buffer(device: &wgpu::Device, label: &str, size: u64) -> wgpu::Buffer {
         device.create_buffer(&wgpu::BufferDescriptor {
             label: Some(label),
             size,
@@ -75,11 +70,7 @@ impl BufferManager {
     }
 
     /// Create a staging buffer for reading GPU results back to CPU
-    pub fn create_staging_buffer(
-        device: &wgpu::Device,
-        label: &str,
-        size: u64,
-    ) -> wgpu::Buffer {
+    pub fn create_staging_buffer(device: &wgpu::Device, label: &str, size: u64) -> wgpu::Buffer {
         device.create_buffer(&wgpu::BufferDescriptor {
             label: Some(label),
             size,
@@ -101,7 +92,8 @@ pub async fn execute_and_read<T: bytemuck::Pod + Copy>(
 ) -> Vec<T> {
     // Create staging buffer
     let buffer_size = (result_count * std::mem::size_of::<T>()) as u64;
-    let staging_buffer = BufferManager::create_staging_buffer(device, "Staging Buffer", buffer_size);
+    let staging_buffer =
+        BufferManager::create_staging_buffer(device, "Staging Buffer", buffer_size);
 
     // Execute compute shader
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {

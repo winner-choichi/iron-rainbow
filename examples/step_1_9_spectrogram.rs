@@ -1,3 +1,4 @@
+use image::Rgb;
 /// Step 1.9: Final Spectrogram (Angle vs Wavelength Heatmap)
 ///
 /// 2D visualization of the complete UV rainbow:
@@ -9,12 +10,10 @@
 /// to create a comprehensive spectrogram of the steel rainbow.
 ///
 /// Run with: cargo run --release --example step_1_9_spectrogram
-
 use iron_rainbow::{
-    path_length_2d, Circle, DrudeModel,
-    GpuContext, PathTraceInput, Renderer2D, compute_path_traces, Ray,
+    compute_path_traces, path_length_2d, Circle, DrudeModel, GpuContext, PathTraceInput, Ray,
+    Renderer2D,
 };
-use image::Rgb;
 use std::f32::consts::PI;
 use std::time::Instant;
 
@@ -30,30 +29,35 @@ async fn main() {
     let steel = DrudeModel::steel();
 
     // Droplet parameters (optimized from Step 1.7)
-    let radius = 0.03;  // 30 nm
+    let radius = 0.03; // 30 nm
     let circle = Circle::new([0.0, 0.0], radius);
     let n_air = 1.0;
 
     // Wavelength range (UV spectrum where n > 1)
-    let wavelength_min = 145.0;  // nm
-    let wavelength_max = 200.0;  // nm
-    let num_wavelengths = 28;  // Higher resolution for smoother heatmap
+    let wavelength_min = 145.0; // nm
+    let wavelength_max = 200.0; // nm
+    let num_wavelengths = 28; // Higher resolution for smoother heatmap
 
     // Impact parameter range
-    let num_rays_per_wavelength = 1000;  // Enough for good statistics
+    let num_rays_per_wavelength = 1000; // Enough for good statistics
     let b_min = 0.05;
     let b_max = 0.85;
 
     println!("Configuration:");
-    println!("  Wavelength range: {:.0}-{:.0} nm ({} samples)",
-             wavelength_min, wavelength_max, num_wavelengths);
+    println!(
+        "  Wavelength range: {:.0}-{:.0} nm ({} samples)",
+        wavelength_min, wavelength_max, num_wavelengths
+    );
     println!("  Rays per wavelength: {}", num_rays_per_wavelength);
-    println!("  Total rays: {}\n", num_wavelengths * num_rays_per_wavelength);
+    println!(
+        "  Total rays: {}\n",
+        num_wavelengths * num_rays_per_wavelength
+    );
 
     // Data structures for 2D heatmap (scattering angle: 0° to 180°)
-    let num_angle_bins = 180;  // 1 degree resolution
+    let num_angle_bins = 180; // 1 degree resolution
     let angle_min = 0.0;
-    let angle_max = 180.0;  // Full scattering range
+    let angle_max = 180.0; // Full scattering range
     let angle_bin_width = (angle_max - angle_min) / num_angle_bins as f32;
 
     // 2D grid: [wavelength_idx][angle_bin_idx] = intensity
@@ -72,8 +76,13 @@ async fn main() {
 
         // Skip if n <= 1 (no refraction into droplet)
         if n_steel <= 1.0 {
-            println!("[{:2}/{}] λ={:.1}nm: n={:.4} ≤ 1, skipping",
-                     wl_idx + 1, num_wavelengths, wavelength, n_steel);
+            println!(
+                "[{:2}/{}] λ={:.1}nm: n={:.4} ≤ 1, skipping",
+                wl_idx + 1,
+                num_wavelengths,
+                wavelength,
+                n_steel
+            );
             continue;
         }
 
@@ -115,7 +124,8 @@ async fn main() {
 
                 // Bin the angle
                 if scattering_angle >= angle_min && scattering_angle <= angle_max {
-                    let bin_idx = ((scattering_angle - angle_min) / angle_bin_width).floor() as usize;
+                    let bin_idx =
+                        ((scattering_angle - angle_min) / angle_bin_width).floor() as usize;
                     if bin_idx < num_angle_bins {
                         heatmap[wl_idx][bin_idx] += transmittance;
                         successful += 1;
@@ -124,18 +134,27 @@ async fn main() {
             }
         }
 
-        println!("[{:2}/{}] λ={:.1}nm: n={:.4}, k={:.4} → {} rays successful",
-                 wl_idx + 1, num_wavelengths, wavelength, n_steel, k_steel, successful);
+        println!(
+            "[{:2}/{}] λ={:.1}nm: n={:.4}, k={:.4} → {} rays successful",
+            wl_idx + 1,
+            num_wavelengths,
+            wavelength,
+            n_steel,
+            k_steel,
+            successful
+        );
     }
 
     let total_time = total_start.elapsed();
     println!("\n✓ Completed in {:.2} s", total_time.as_secs_f64());
-    println!("  Throughput: {:.1} million rays/sec\n",
-             (num_wavelengths * num_rays_per_wavelength) as f64
-             / total_time.as_secs_f64() / 1_000_000.0);
+    println!(
+        "  Throughput: {:.1} million rays/sec\n",
+        (num_wavelengths * num_rays_per_wavelength) as f64 / total_time.as_secs_f64() / 1_000_000.0
+    );
 
     // Find global max for normalization
-    let global_max = heatmap.iter()
+    let global_max = heatmap
+        .iter()
         .flat_map(|row| row.iter())
         .cloned()
         .fold(0.0f32, f32::max);
@@ -162,9 +181,8 @@ async fn main() {
     let y_max = 4.2;
 
     // Mapping functions
-    let angle_to_x = |angle: f32| {
-        x_min + (angle - angle_min) / (angle_max - angle_min) * (x_max - x_min)
-    };
+    let angle_to_x =
+        |angle: f32| x_min + (angle - angle_min) / (angle_max - angle_min) * (x_max - x_min);
 
     let wavelength_to_y = |wl: f32| {
         y_min + (wl - wavelength_min) / (wavelength_max - wavelength_min) * (y_max - y_min)
@@ -212,7 +230,7 @@ async fn main() {
             let x = angle_to_x(*angle);
             renderer.draw_thick_line(x, y_min, x, y_min + 0.15, 0.03, axis_color);
             let label = if *angle == 42.0 {
-                format!("{:.0}*", angle)  // Mark water rainbow angle
+                format!("{:.0}*", angle) // Mark water rainbow angle
             } else {
                 format!("{:.0}", angle)
             };
@@ -221,7 +239,7 @@ async fn main() {
     }
 
     // Y-axis ticks (wavelengths)
-    let wl_step = 10.0;  // Every 10 nm
+    let wl_step = 10.0; // Every 10 nm
     let mut wl_tick = (wavelength_min / wl_step).ceil() * wl_step;
     while wl_tick <= wavelength_max {
         let y = wavelength_to_y(wl_tick);
@@ -242,8 +260,13 @@ async fn main() {
         let t = i as f32 / (legend_steps - 1) as f32;
         let y = legend_y_min + t * (legend_y_max - legend_y_min);
         let color = intensity_to_color(t);
-        renderer.fill_rect(legend_x, y, legend_width,
-                          (legend_y_max - legend_y_min) / legend_steps as f32, color);
+        renderer.fill_rect(
+            legend_x,
+            y,
+            legend_width,
+            (legend_y_max - legend_y_min) / legend_steps as f32,
+            color,
+        );
     }
 
     // Legend labels

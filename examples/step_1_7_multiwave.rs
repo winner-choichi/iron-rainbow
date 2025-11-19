@@ -1,3 +1,4 @@
+use image::Rgb;
 /// Step 1.7: Multi-wavelength Simulation (UV Rainbow) - Optimized
 ///
 /// Optimized parameters for maximum angular dispersion and transmittance:
@@ -6,12 +7,10 @@
 /// - Impact parameter: 0.6 (balance between path length and exit angle)
 ///
 /// Run with: cargo run --example step_1_7_multiwave
-
 use iron_rainbow::{
-    path_length_2d, Circle, DrudeModel,
-    GpuContext, PathTraceInput, Renderer2D, compute_path_traces, Ray,
+    compute_path_traces, path_length_2d, Circle, DrudeModel, GpuContext, PathTraceInput, Ray,
+    Renderer2D,
 };
-use image::Rgb;
 use std::f32::consts::PI;
 
 #[tokio::main]
@@ -26,9 +25,9 @@ async fn main() {
     let steel = DrudeModel::steel();
 
     // Optimized parameters
-    let radius = 0.03;  // 30 nm droplet (smaller for better transmission)
+    let radius = 0.03; // 30 nm droplet (smaller for better transmission)
     let circle = Circle::new([0.0, 0.0], radius);
-    let impact_param = 0.6;  // Slightly lower for better exit angles
+    let impact_param = 0.6; // Slightly lower for better exit angles
     let b = impact_param * circle.radius;
     let ray = Ray::new([-2.5 * radius, b], [1.0, 0.0]);
 
@@ -49,7 +48,10 @@ async fn main() {
         })
         .collect();
 
-    println!("Sampling {} wavelengths from {:.0}-{:.0} nm\n", num_wavelengths, wl_min, wl_max);
+    println!(
+        "Sampling {} wavelengths from {:.0}-{:.0} nm\n",
+        num_wavelengths, wl_min, wl_max
+    );
 
     // Trace paths
     println!("Tracing wavelength-dependent paths...\n");
@@ -99,7 +101,14 @@ async fn main() {
         // e.g., 171° backward → 9° forward (comparable to water rainbow 42°)
         let scattering_angle = 180.0 - backward_angle;
 
-        results_data.push((*wl, n_steel, k_steel, scattering_angle, transmittance, total_path));
+        results_data.push((
+            *wl,
+            n_steel,
+            k_steel,
+            scattering_angle,
+            transmittance,
+            total_path,
+        ));
     }
 
     if results_data.is_empty() {
@@ -107,17 +116,31 @@ async fn main() {
         return;
     }
 
-    println!("✓ Successfully traced {} wavelengths ({} skipped)\n", results_data.len(), skipped);
+    println!(
+        "✓ Successfully traced {} wavelengths ({} skipped)\n",
+        results_data.len(),
+        skipped
+    );
 
     // Print detailed results
     println!("Wavelength-Angle Dispersion Table:");
     println!("{:-<80}", "");
-    println!("{:>8} {:>8} {:>8} {:>12} {:>12} {:>12}", "λ (nm)", "n", "k", "Scatter (°)", "T (%)", "Path (nm)");
+    println!(
+        "{:>8} {:>8} {:>8} {:>12} {:>12} {:>12}",
+        "λ (nm)", "n", "k", "Scatter (°)", "T (%)", "Path (nm)"
+    );
     println!("{:-<80}", "");
 
     for (wl, n, k, angle, trans, path) in results_data.iter() {
-        println!("{:>8.1} {:>8.4} {:>8.4} {:>12.2} {:>12.6} {:>12.1}",
-                 wl, n, k, angle, trans * 100.0, path * 1000.0);
+        println!(
+            "{:>8.1} {:>8.4} {:>8.4} {:>12.2} {:>12.6} {:>12.1}",
+            wl,
+            n,
+            k,
+            angle,
+            trans * 100.0,
+            path * 1000.0
+        );
     }
     println!("{:-<80}\n", "");
 
@@ -158,8 +181,8 @@ async fn main() {
     renderer.fill_rect(-5.0, 5.0, 10.0, 10.0, bg_color);
 
     // Colors
-    let point_color = Rgb([138, 43, 226]);  // Purple
-    let line_color = Rgb([100, 149, 237]);  // Cornflower blue
+    let point_color = Rgb([138, 43, 226]); // Purple
+    let line_color = Rgb([100, 149, 237]); // Cornflower blue
     let axis_color = Rgb([60, 60, 60]);
     let grid_color = Rgb([220, 225, 230]);
     let text_color = Rgb([40, 40, 40]);
@@ -171,9 +194,7 @@ async fn main() {
     let y_max = 4.2;
 
     // Map functions
-    let wl_to_x = |wl: f32| {
-        x_min + (wl - wl_min) / (wl_max - wl_min) * (x_max - x_min)
-    };
+    let wl_to_x = |wl: f32| x_min + (wl - wl_min) / (wl_max - wl_min) * (x_max - x_min);
 
     let angle_margin = angle_spread.max(10.0) * 0.15;
     let angle_min_plot = min_angle - angle_margin;
@@ -240,7 +261,13 @@ async fn main() {
 
     // Title (smaller, higher)
     let title_color = Rgb([40, 40, 40]);
-    renderer.draw_text(-2.8, 5.2, "UV Rainbow: Angular Dispersion", 0.28, title_color);
+    renderer.draw_text(
+        -2.8,
+        5.2,
+        "UV Rainbow: Angular Dispersion",
+        0.28,
+        title_color,
+    );
 
     // Axis labels (smaller, better position)
     renderer.draw_text(-1.5, -5.3, "Wavelength (nm)", 0.22, axis_color);
@@ -260,13 +287,18 @@ async fn main() {
     println!("\nVisualization:");
     println!("  Title: UV Rainbow - Angular Dispersion");
     println!("  X-axis: Wavelength ({:.0}-{:.0} nm)", wl_min, wl_max);
-    println!("  Y-axis: Exit Angle ({:.1}° to {:.1}°)", angle_min_plot, angle_max_plot);
+    println!(
+        "  Y-axis: Exit Angle ({:.1}° to {:.1}°)",
+        angle_min_plot, angle_max_plot
+    );
     println!("  Purple points: Data (size ∝ transmittance)");
     println!("  Blue curve: Dispersion relation");
     println!("\nPhysics Summary:");
-    println!("  n(λ) varies from {:.3} to {:.3}",
-             results_data.first().unwrap().1,
-             results_data.last().unwrap().1);
+    println!(
+        "  n(λ) varies from {:.3} to {:.3}",
+        results_data.first().unwrap().1,
+        results_data.last().unwrap().1
+    );
     println!("  → Different refractive indices → different exit angles");
     println!("  → This IS a rainbow! (in UV spectrum)");
     println!("\n✓ Step 1.7 complete!");

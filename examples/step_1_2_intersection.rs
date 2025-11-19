@@ -1,10 +1,9 @@
+use image::Rgb;
 /// Step 1.2: Ray-Circle Intersection Visualization
 /// Renders rays and their intersection points with a circle
 ///
 /// Run with: cargo run --example step_1_2_intersection
-
-use iron_rainbow::{GpuContext, Ray, Circle, compute_intersections, Renderer2D};
-use image::Rgb;
+use iron_rainbow::{compute_intersections, Circle, GpuContext, Ray, Renderer2D};
 
 #[tokio::main]
 async fn main() {
@@ -21,33 +20,33 @@ async fn main() {
     // Create diverse test rays
     let test_rays = vec![
         // Cardinal directions (4 rays)
-        Ray::new([-2.5, 0.0], [1.0, 0.0]),   // From left
-        Ray::new([2.5, 0.0], [-1.0, 0.0]),   // From right
-        Ray::new([0.0, 2.5], [0.0, -1.0]),   // From top
-        Ray::new([0.0, -2.5], [0.0, 1.0]),   // From bottom
-
+        Ray::new([-2.5, 0.0], [1.0, 0.0]), // From left
+        Ray::new([2.5, 0.0], [-1.0, 0.0]), // From right
+        Ray::new([0.0, 2.5], [0.0, -1.0]), // From top
+        Ray::new([0.0, -2.5], [0.0, 1.0]), // From bottom
         // Diagonal rays (4 rays)
-        Ray::normalized([-2.5, 2.5], [1.0, -1.0]),   // Top-left
-        Ray::normalized([2.5, 2.5], [-1.0, -1.0]),   // Top-right
-        Ray::normalized([2.5, -2.5], [-1.0, 1.0]),   // Bottom-right
-        Ray::normalized([-2.5, -2.5], [1.0, 1.0]),   // Bottom-left
-
+        Ray::normalized([-2.5, 2.5], [1.0, -1.0]), // Top-left
+        Ray::normalized([2.5, 2.5], [-1.0, -1.0]), // Top-right
+        Ray::normalized([2.5, -2.5], [-1.0, 1.0]), // Bottom-right
+        Ray::normalized([-2.5, -2.5], [1.0, 1.0]), // Bottom-left
         // Grazing rays (2 rays)
         Ray::new([-2.5, 0.95], [1.0, 0.0]),  // Almost miss (top)
         Ray::new([-2.5, -0.95], [1.0, 0.0]), // Almost miss (bottom)
-
         // Miss rays (3 rays)
-        Ray::new([-2.5, 2.0], [1.0, 0.0]),   // Parallel above
-        Ray::new([-2.5, 0.0], [-1.0, 0.0]),  // Pointing away
-        Ray::new([0.0, 0.0], [1.0, 0.0]),    // From center (behind)
-
+        Ray::new([-2.5, 2.0], [1.0, 0.0]),  // Parallel above
+        Ray::new([-2.5, 0.0], [-1.0, 0.0]), // Pointing away
+        Ray::new([0.0, 0.0], [1.0, 0.0]),   // From center (behind)
         // Off-angle rays (3 rays)
         Ray::normalized([-2.5, 1.5], [1.0, -0.3]),
         Ray::normalized([1.5, 2.5], [-0.3, -1.0]),
         Ray::normalized([-2.5, -1.5], [1.0, 0.3]),
     ];
 
-    println!("Testing {} rays against circle (radius={})...", test_rays.len(), circle.radius);
+    println!(
+        "Testing {} rays against circle (radius={})...",
+        test_rays.len(),
+        circle.radius
+    );
 
     // Compute intersections on GPU
     let results = compute_intersections(&gpu, &test_rays, &circle).await;
@@ -70,13 +69,13 @@ async fn main() {
         circle.center[0],
         circle.center[1],
         circle.radius,
-        Rgb([0, 0, 0])  // Black outline
+        Rgb([0, 0, 0]), // Black outline
     );
     renderer.draw_filled_circle(
         circle.center[0],
         circle.center[1],
         circle.radius,
-        Rgb([220, 220, 230])  // Light steel color
+        Rgb([220, 220, 230]), // Light steel color
     );
 
     // Draw rays and intersection points
@@ -90,7 +89,7 @@ async fn main() {
                 ray.origin[1],
                 point[0],
                 point[1],
-                Rgb([0, 180, 0])  // Green for hit
+                Rgb([0, 180, 0]), // Green for hit
             );
 
             // Draw intersection point (red)
@@ -103,7 +102,7 @@ async fn main() {
                 point[1],
                 point[0] + normal[0] * 0.3,
                 point[1] + normal[1] * 0.3,
-                Rgb([0, 0, 255])  // Blue for normal
+                Rgb([0, 0, 255]), // Blue for normal
             );
         } else {
             // Draw missed ray (gray, shorter)
@@ -114,17 +113,12 @@ async fn main() {
                 ray.origin[1],
                 end_x,
                 end_y,
-                Rgb([150, 150, 150])  // Gray for miss
+                Rgb([150, 150, 150]), // Gray for miss
             );
         }
 
         // Draw ray origin (small black point)
-        renderer.draw_filled_circle(
-            ray.origin[0],
-            ray.origin[1],
-            0.03,
-            Rgb([0, 0, 0])
-        );
+        renderer.draw_filled_circle(ray.origin[0], ray.origin[1], 0.03, Rgb([0, 0, 0]));
     }
 
     // Save image

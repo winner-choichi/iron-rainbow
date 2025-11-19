@@ -1,3 +1,4 @@
+use image::Rgb;
 /// Step 1.8: Massive Parallel Ray Tracing
 ///
 /// GPU-accelerated simulation of thousands of rays with varying impact parameters:
@@ -7,12 +8,10 @@
 /// - Performance benchmarking
 ///
 /// Run with: cargo run --release --example step_1_8_parallel_rays
-
 use iron_rainbow::{
-    path_length_2d, Circle, DrudeModel,
-    GpuContext, PathTraceInput, Renderer2D, compute_path_traces, Ray,
+    compute_path_traces, path_length_2d, Circle, DrudeModel, GpuContext, PathTraceInput, Ray,
+    Renderer2D,
 };
-use image::Rgb;
 use std::f32::consts::PI;
 use std::time::Instant;
 
@@ -28,11 +27,11 @@ async fn main() {
     let steel = DrudeModel::steel();
 
     // Droplet parameters (same as Step 1.7)
-    let radius = 0.03;  // 30 nm
+    let radius = 0.03; // 30 nm
     let circle = Circle::new([0.0, 0.0], radius);
 
     // Select single wavelength for initial test
-    let wavelength = 170.0;  // nm (peak n value from Step 1.7)
+    let wavelength = 170.0; // nm (peak n value from Step 1.7)
     let (n_steel, k_steel) = steel.complex_index(wavelength);
     let n_air = 1.0;
 
@@ -44,8 +43,10 @@ async fn main() {
     let b_min = 0.05;
     let b_max = 0.85;
 
-    println!("Generating {} rays with impact parameters {} to {}",
-             num_rays, b_min, b_max);
+    println!(
+        "Generating {} rays with impact parameters {} to {}",
+        num_rays, b_min, b_max
+    );
     println!("  → {} rays per GPU batch\n", num_rays);
 
     // Generate all input rays
@@ -61,8 +62,11 @@ async fn main() {
         .collect();
     let gen_time = start_gen.elapsed();
 
-    println!("✓ Generated {} ray inputs in {:.3} ms\n",
-             inputs.len(), gen_time.as_secs_f64() * 1000.0);
+    println!(
+        "✓ Generated {} ray inputs in {:.3} ms\n",
+        inputs.len(),
+        gen_time.as_secs_f64() * 1000.0
+    );
 
     // GPU batch processing
     println!("Executing GPU path tracing...");
@@ -70,10 +74,15 @@ async fn main() {
     let results = compute_path_traces(&gpu, &inputs).await;
     let gpu_time = start_gpu.elapsed();
 
-    println!("✓ GPU traced {} rays in {:.3} ms",
-             results.len(), gpu_time.as_secs_f64() * 1000.0);
-    println!("  → {:.1} million rays/sec\n",
-             results.len() as f64 / gpu_time.as_secs_f64() / 1_000_000.0);
+    println!(
+        "✓ GPU traced {} rays in {:.3} ms",
+        results.len(),
+        gpu_time.as_secs_f64() * 1000.0
+    );
+    println!(
+        "  → {:.1} million rays/sec\n",
+        results.len() as f64 / gpu_time.as_secs_f64() / 1_000_000.0
+    );
 
     // Analyze results: collect exit angles and intensities
     let start_analyze = Instant::now();
@@ -93,7 +102,7 @@ async fn main() {
 
             // Calculate scattering angle (classical rainbow convention)
             let exit_dir = result.event2_direction;
-            let incident_dir = [1.0, 0.0];  // Horizontal right
+            let incident_dir = [1.0, 0.0]; // Horizontal right
 
             // cos(θ) = incident · exit
             let cos_theta = incident_dir[0] * exit_dir[0] + incident_dir[1] * exit_dir[1];
@@ -108,11 +117,16 @@ async fn main() {
     }
 
     let analyze_time = start_analyze.elapsed();
-    println!("✓ Analyzed results in {:.3} ms",
-             analyze_time.as_secs_f64() * 1000.0);
-    println!("  Success rate: {:.1}% ({}/{})\n",
-             100.0 * successful_rays as f32 / num_rays as f32,
-             successful_rays, num_rays);
+    println!(
+        "✓ Analyzed results in {:.3} ms",
+        analyze_time.as_secs_f64() * 1000.0
+    );
+    println!(
+        "  Success rate: {:.1}% ({}/{})\n",
+        100.0 * successful_rays as f32 / num_rays as f32,
+        successful_rays,
+        num_rays
+    );
 
     if angle_intensity_pairs.is_empty() {
         println!("✗ No successful rays");
@@ -122,7 +136,7 @@ async fn main() {
     // Build angular histogram (scattering angle: 0° to 180°)
     let angle_min = 0.0;
     let angle_max = 180.0;
-    let num_bins = 180;  // 1 degree per bin
+    let num_bins = 180; // 1 degree per bin
     let bin_width = (angle_max - angle_min) / num_bins as f32;
 
     let mut histogram = vec![0.0f32; num_bins];
@@ -158,7 +172,7 @@ async fn main() {
     renderer.fill_rect(-5.0, 5.0, 10.0, 10.0, bg_color);
 
     // Colors
-    let curve_color = Rgb([220, 50, 50]);  // Red for intensity
+    let curve_color = Rgb([220, 50, 50]); // Red for intensity
     let axis_color = Rgb([60, 60, 60]);
     let grid_color = Rgb([220, 225, 230]);
     let text_color = Rgb([40, 40, 40]);
@@ -170,14 +184,11 @@ async fn main() {
     let y_max = 4.2;
 
     // Map angle to x
-    let angle_to_x = |angle: f32| {
-        x_min + (angle - min_angle) / (max_angle - min_angle) * (x_max - x_min)
-    };
+    let angle_to_x =
+        |angle: f32| x_min + (angle - min_angle) / (max_angle - min_angle) * (x_max - x_min);
 
     // Map intensity to y (linear scale)
-    let intensity_to_y = |intensity: f32| {
-        y_min + (intensity / max_intensity) * (y_max - y_min)
-    };
+    let intensity_to_y = |intensity: f32| y_min + (intensity / max_intensity) * (y_max - y_min);
 
     // Draw grid
     for i in 0..9 {
@@ -241,19 +252,29 @@ async fn main() {
     // Performance summary
     let total_time = gen_time + gpu_time + analyze_time;
     println!("Performance Summary:");
-    println!("  Ray generation:  {:.3} ms ({:.1}%)",
-             gen_time.as_secs_f64() * 1000.0,
-             100.0 * gen_time.as_secs_f64() / total_time.as_secs_f64());
-    println!("  GPU computation: {:.3} ms ({:.1}%)",
-             gpu_time.as_secs_f64() * 1000.0,
-             100.0 * gpu_time.as_secs_f64() / total_time.as_secs_f64());
-    println!("  Result analysis: {:.3} ms ({:.1}%)",
-             analyze_time.as_secs_f64() * 1000.0,
-             100.0 * analyze_time.as_secs_f64() / total_time.as_secs_f64());
-    println!("  Total:           {:.3} ms",
-             total_time.as_secs_f64() * 1000.0);
-    println!("  Throughput:      {:.1} million rays/sec\n",
-             num_rays as f64 / total_time.as_secs_f64() / 1_000_000.0);
+    println!(
+        "  Ray generation:  {:.3} ms ({:.1}%)",
+        gen_time.as_secs_f64() * 1000.0,
+        100.0 * gen_time.as_secs_f64() / total_time.as_secs_f64()
+    );
+    println!(
+        "  GPU computation: {:.3} ms ({:.1}%)",
+        gpu_time.as_secs_f64() * 1000.0,
+        100.0 * gpu_time.as_secs_f64() / total_time.as_secs_f64()
+    );
+    println!(
+        "  Result analysis: {:.3} ms ({:.1}%)",
+        analyze_time.as_secs_f64() * 1000.0,
+        100.0 * analyze_time.as_secs_f64() / total_time.as_secs_f64()
+    );
+    println!(
+        "  Total:           {:.3} ms",
+        total_time.as_secs_f64() * 1000.0
+    );
+    println!(
+        "  Throughput:      {:.1} million rays/sec\n",
+        num_rays as f64 / total_time.as_secs_f64() / 1_000_000.0
+    );
 
     println!("✓ Step 1.8 complete!");
 }
