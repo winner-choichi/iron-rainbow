@@ -920,8 +920,8 @@ fn resolve_wavelength_axis(metadata: &LutMetadata, config: &LutConfig) -> (f32, 
         return axis;
     }
 
-    warn!("Unable to determine valid wavelength axis, defaulting to 145–200 nm");
-    (145.0, 55.0)
+    warn!("Unable to determine valid wavelength axis, defaulting to 230–300 nm");
+    (230.0, 70.0)
 }
 
 fn resolve_angle_axis(metadata: &LutMetadata, config: &LutConfig) -> (f32, f32) {

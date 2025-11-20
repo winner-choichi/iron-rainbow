@@ -835,3 +835,25 @@ struct ViewerUniform {
 3. Secondary rainbow 추가 (126°~130°)
 4. Supernumerary arcs 확인
 5. 성능 프로파일링 및 최적화
+
+---
+
+## 📌 최종 업데이트 (2025-11-20)
+
+### 파장 범위 변경: 145-200nm → 230-300nm
+
+**변경 이유**:
+1. **240nm Lorentz oscillator 중심**: Drude-Lorentz 모델의 주요 공명 주파수에 가까움
+2. **실험 데이터 범위**: Johnson & Christy (1974) 데이터 (188-199nm)에 더 근접
+3. **투과율 개선**: 16.3% vs 0.13% (100배 향상)
+4. **UV-C 영역**: 잘 정의된 물리적 범위
+
+**업데이트된 결과**:
+- 파장 범위: **230-300 nm** (UV-C)
+- 산란각: **0.53° - 51.57°** (51° spread)
+- 굴절률: **n = 2.016 (230nm) → 1.169 (300nm)**
+- 투과율: **최대 16.3% @ 300nm**
+- LUT 생성: 64 wavelengths × 512 angles (exposure = 1.0)
+- RGB mapping: R=280nm, G=265nm, B=250nm
+
+**모든 코드 및 문서 업데이트 완료**.

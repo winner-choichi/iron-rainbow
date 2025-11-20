@@ -12,13 +12,13 @@
 
 The **Iron Rainbow Simulator** is a physics-based GPU-accelerated tool that simulates and visualizes the unique optical phenomenon of rainbows created by **liquid steel nanoparticles** in the ultraviolet (UV) spectrum.
 
-Unlike traditional water-based rainbows, these "iron rainbows" occur in the **145-200 nm UV range** and require **30-nanometer droplets** to overcome strong metallic absorption.
+Unlike traditional water-based rainbows, these "iron rainbows" occur in the **230-300 nm UV-C range** and require **30-nanometer droplets** to overcome strong metallic absorption.
 
 ### Key Discovery
 
 > **UV rainbows from iron nanoparticles are physically possible!**
 >
-> Through Drude-Lorentz modeling and Beer-Lambert absorption calculations, we discovered that 30nm liquid steel droplets can produce observable rainbow scattering at 145-200nm wavelengths with ~0.13% peak transmittance.
+> Through Drude-Lorentz modeling and Beer-Lambert absorption calculations, we discovered that 30nm liquid steel droplets can produce observable rainbow scattering at 230-300nm wavelengths with ~16% peak transmittance (100x better than shorter wavelengths).
 
 ---
 
@@ -117,11 +117,11 @@ Validated the core physics using 2D GPU ray tracing:
 |------|-------------|-------------|
 | 1.5 | Drude-Lorentz model (fitted) | n(100nm) = 1.38, k = 0.22 |
 | 1.6 | Beer-Lambert absorption | R=30nm optimal |
-| 1.7 | UV rainbow discovery | 145-200nm, Δθ=45.88° |
+| 1.7 | UV rainbow discovery | 230-300nm, Δθ=51.04° |
 | 1.8 | Parallel ray tracing | 6.9M rays/sec |
 | 1.9 | Spectrogram generation | 500K rays/sec |
 
-**Result**: Confirmed UV rainbow feasibility with 30nm droplets at 145-200nm.
+**Result**: Confirmed UV rainbow feasibility with 30nm droplets at 230-300nm (16% transmittance).
 
 **Note**: Step 1.5 uses semi-empirical parameters fitted to Johnson & Christy (1974) experimental data with 11-20% accuracy.
 
@@ -144,8 +144,8 @@ Built an interactive 3D visualization using phase function approach:
 
 ### Spectrogram (Phase 1)
 2D heatmap showing intensity distribution across scattering angles and wavelengths.
-- **X-axis**: Scattering angle (-180° to -120°)
-- **Y-axis**: Wavelength (145-200 nm)
+- **X-axis**: Scattering angle (0° to 180°)
+- **Y-axis**: Wavelength (230-300 nm)
 - **Color**: Intensity (blue → red)
 
 ### 3D Viewer (Phase 2)

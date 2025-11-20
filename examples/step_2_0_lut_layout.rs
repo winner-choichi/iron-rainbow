@@ -211,14 +211,14 @@ fn main() {
     renderer.draw_text_screen(
         lut_px0 as f32 + 100.0,
         lut_py1 as f32 - 80.0,
-        "Wavelength axis (145–200 nm)",
+        "Wavelength axis (230–300 nm)",
         30.0,
         Rgb([30, 40, 90]),
     );
     renderer.draw_text_screen(
         lut_px0 as f32 + 80.0,
         lut_py0 as f32 + 120.0,
-        "Exit angle axis (-180° to -120°)",
+        "Exit angle axis (0° to 180°)",
         30.0,
         Rgb([30, 40, 90]),
     );
@@ -252,7 +252,7 @@ fn main() {
     );
 
     // Callouts for representative wavelengths and angles (screen coordinates)
-    let callout_wls = [145.0_f32, 170.0, 190.0];
+    let callout_wls = [230.0_f32, 265.0, 300.0];
     for (idx, wl) in callout_wls.iter().enumerate() {
         let y = wl_to_y(*wl);
         renderer.draw_thick_line(lut_x0 - 0.2, y, lut_x0, y, 0.04, Rgb([90, 90, 120]));
@@ -266,7 +266,7 @@ fn main() {
         );
     }
 
-    let callout_angles = [-175.0_f32, -150.0, -125.0];
+    let callout_angles = [30.0_f32, 90.0, 150.0];
     for (idx, angle) in callout_angles.iter().enumerate() {
         let x = angle_to_x(*angle);
         renderer.draw_thick_line(x, lut_y0, x, lut_y0 - 0.3, 0.04, Rgb([90, 90, 120]));

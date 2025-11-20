@@ -219,7 +219,7 @@ async fn main() {
     renderer.draw_thick_line(x_min, y_min, x_min, y_max, 0.05, axis_color);
 
     // Wavelength axis labels (smaller font)
-    let wl_ticks = [145.0, 160.0, 175.0, 190.0, 200.0];
+    let wl_ticks = [230.0, 245.0, 260.0, 275.0, 290.0];
     for wl in wl_ticks.iter() {
         let x = wl_to_x(*wl);
         renderer.draw_thick_line(x, y_min, x, y_min + 0.15, 0.03, axis_color);

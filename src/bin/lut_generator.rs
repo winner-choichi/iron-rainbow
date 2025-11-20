@@ -73,6 +73,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         global_max = 1.0;
     }
 
+    println!("\nLUT Statistics:");
+    println!("  Global maximum intensity: {:.6}", global_max);
+    println!("  Non-zero columns per row:");
+    for (row_idx, row) in grid.iter().enumerate() {
+        let non_zero = row.iter().filter(|&&v| v > 0.0).count();
+        if non_zero > 0 {
+            println!("    Row {}: {} / {} columns", row_idx, non_zero, row.len());
+        }
+    }
+
     let normalized = normalize_grid(&grid, &row_maxes, global_max, &config);
     save_texture(&normalized, &config)?;
     save_metadata(&config, &wavelengths)?;

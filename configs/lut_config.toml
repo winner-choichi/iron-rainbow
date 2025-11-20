@@ -18,7 +18,7 @@ angle_supersample = 4
 
 [intensity]
 normalize_mode = "global"   # options: per_wavelength, global
-exposure = 0.01  # Very low exposure for subtle rainbow effect
+exposure = 1.0  # Normalized to [0, 1] range (viewer controls final exposure)
 
 [droplet]
 radius_um = 0.03
