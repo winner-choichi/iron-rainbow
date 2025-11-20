@@ -173,15 +173,14 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
         return vec4<f32>(abs(ray_dir), 1.0);
     }
 
-    // Calculate scattering angle θ (classical rainbow convention)
-    // First calculate backward angle, then convert to forward-equivalent
-    // Water rainbow ≈ 42°, Iron rainbow ≈ 8-10°
-    let cos_theta = dot(ray_dir, params.sun_dir);
+    // Rainbow physics: Angle from anti-solar point
+    // Anti-solar point = opposite direction of sun
+    // Rainbow forms at specific angles from this point
+    // Water rainbow ≈ 42°, Iron rainbow ≈ 0.5-52° (our simulation)
+    let anti_solar = -params.sun_dir;
+    let cos_theta = dot(ray_dir, anti_solar);
     let theta_rad = acos(clamp(cos_theta, -1.0, 1.0));
-    let backward_angle = theta_rad * RAD_TO_DEG;
-
-    // Convert backscattering to forward-equivalent (180° - θ)
-    let scattering_angle = 180.0 - backward_angle;
+    let scattering_angle = theta_rad * RAD_TO_DEG;
 
     // Debug mode 7: Scattering angle visualization
     if (params.debug_mode == 7u) {
@@ -189,10 +188,10 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
         return vec4<f32>(norm, norm, norm, 1.0);
     }
 
-    // Debug mode 6: Show expected rainbow range (0° - 20°)
+    // Debug mode 6: Show expected rainbow range (0° - 52°)
     if (params.debug_mode == 6u) {
-        if (scattering_angle >= 0.0 && scattering_angle <= 20.0) {
-            let norm = scattering_angle / 20.0;
+        if (scattering_angle >= 0.0 && scattering_angle <= 52.0) {
+            let norm = scattering_angle / 52.0;
             return vec4<f32>(0.0, norm, 1.0 - norm, 1.0);
         } else {
             return vec4<f32>(0.1, 0.1, 0.1, 1.0);
