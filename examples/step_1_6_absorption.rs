@@ -148,7 +148,7 @@ async fn main() {
     }
 
     // Visualization
-    let mut renderer = Renderer2D::new(1920, 1080, 10.0);
+    let mut renderer = Renderer2D::new(1920, 1080, 15.0);
 
     // Background
     let bg_color = Rgb([245, 250, 255]);

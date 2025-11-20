@@ -91,7 +91,7 @@ fn main() {
     println!("  → UV rainbow formation is possible!");
 
     // Visualization
-    let mut renderer = Renderer2D::new(1600, 1200, 10.0);
+    let mut renderer = Renderer2D::new(1600, 1200, 15.0);
 
     let bg_color = Rgb([245, 250, 255]);
     renderer.fill_rect(-5.0, 5.0, 10.0, 10.0, bg_color);

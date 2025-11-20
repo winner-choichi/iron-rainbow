@@ -33,9 +33,9 @@ async fn main() {
     let circle = Circle::new([0.0, 0.0], radius);
     let n_air = 1.0;
 
-    // Wavelength range (UV spectrum where n > 1)
-    let wavelength_min = 145.0; // nm
-    let wavelength_max = 200.0; // nm
+    // Wavelength range (UV-C spectrum, reliable model range)
+    let wavelength_min = 230.0; // nm
+    let wavelength_max = 300.0; // nm
     let num_wavelengths = 28; // Higher resolution for smoother heatmap
 
     // Impact parameter range

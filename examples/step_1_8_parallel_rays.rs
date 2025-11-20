@@ -31,7 +31,8 @@ async fn main() {
     let circle = Circle::new([0.0, 0.0], radius);
 
     // Select single wavelength for initial test
-    let wavelength = 170.0; // nm (peak n value from Step 1.7)
+    // let wavelength = 170.0; // nm (peak n value from Step 1.7)
+    let wavelength = 230.0; // nm
     let (n_steel, k_steel) = steel.complex_index(wavelength);
     let n_air = 1.0;
 

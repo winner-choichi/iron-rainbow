@@ -2,7 +2,7 @@ use image::Rgb;
 /// Step 1.7: Multi-wavelength Simulation (UV Rainbow) - Optimized
 ///
 /// Optimized parameters for maximum angular dispersion and transmittance:
-/// - Wavelength range: 145-200 nm (n > 1 region, avoiding plasma resonance)
+/// - Wavelength range: 230-300 nm (UV-C region, reliable model range)
 /// - Droplet size: 30 nm (optimal for UV transmission)
 /// - Impact parameter: 0.6 (balance between path length and exit angle)
 ///
@@ -34,11 +34,11 @@ async fn main() {
     println!("Optimized Parameters:");
     println!("  Droplet radius: {:.0} nm", radius * 1000.0);
     println!("  Impact parameter: b/R = {:.1}", impact_param);
-    println!("  Wavelength range: 145-200 nm (n > 1 region)\n");
+    println!("  Wavelength range: 230-300 nm (UV-C region)\n");
 
-    // Optimized wavelength range: avoid 121-142 nm (n < 1 region)
-    let wl_min = 145.0;
-    let wl_max = 200.0;
+    // UV-C wavelength range: reliable model region near 240nm Lorentz oscillator
+    let wl_min = 230.0;
+    let wl_max = 300.0;
     let num_wavelengths = 25;
 
     let wavelengths: Vec<f32> = (0..num_wavelengths)

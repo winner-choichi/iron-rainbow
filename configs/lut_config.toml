@@ -2,8 +2,8 @@
 
 [grid]
 # Wavelength axis (rows)
-wavelength_min_nm = 145.0
-wavelength_max_nm = 200.0
+wavelength_min_nm = 230.0
+wavelength_max_nm = 300.0
 wavelength_steps = 64
 
 # Scattering-angle axis (columns)

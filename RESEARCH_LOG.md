@@ -288,16 +288,17 @@ oscillators: [
 - 각도 분산: 70.6°
 - 투과율: 최대 0.01% 미만
 
-**최적화** (145-200nm, R=30nm):
-- 플라즈마 공명 영역 회피 (121-142nm 제외)
-- 액적 크기 축소 (50nm → 30nm)
-- Impact parameter 조정 (0.7 → 0.6)
+**최적화** (230-300nm, R=30nm):
+- UV-C 영역 선택 (240nm Lorentz oscillator 중심)
+- Johnson & Christy 실험 데이터 범위에 가까움
+- 액적 크기: 30nm
+- Impact parameter: b/R = 0.6
 
 #### 실행 환경
 - 명령: `cargo run --example step_1_7_multiwave`
-- 액적 반경: R = 30 nm (최적값)
+- 액적 반경: R = 30 nm
 - Impact parameter: b/R = 0.6
-- 파장 범위: 145-200 nm (25개 샘플)
+- 파장 범위: 230-300 nm (25개 샘플, UV-C)
 - GPU: Apple M3
 - 출력: `output/step_1_7_multiwave.png`
 
