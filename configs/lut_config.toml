@@ -39,10 +39,9 @@ format = "png16"   # options: png8, png16, hdr
 
 [renderer]
 false_color = [
-    { wavelength = 230.0, color = [64, 64, 255] },
-    { wavelength = 250.0, color = [64, 200, 255] },
-    { wavelength = 265.0, color = [64, 255, 150] },
-    { wavelength = 280.0, color = [255, 210, 64] },
-    { wavelength = 300.0, color = [255, 120, 64] }
+    { wavelength = 275.0, color = [64, 150, 255] },   # Blue-cyan (short UV)
+    { wavelength = 282.5, color = [64, 255, 150] },   # Green
+    { wavelength = 290.0, color = [255, 210, 64] },   # Yellow
+    { wavelength = 300.0, color = [255, 120, 64] }    # Orange (long UV)
 ]
-channel_wavelengths = [280.0, 265.0, 250.0]  # [R, G, B] - UV-C wavelengths
+channel_wavelengths = [295.0, 287.5, 280.0]  # [R, G, B] - 275-300nm range only
