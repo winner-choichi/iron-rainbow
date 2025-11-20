@@ -39,10 +39,10 @@ format = "png16"   # options: png8, png16, hdr
 
 [renderer]
 false_color = [
-    { wavelength = 145.0, color = [64, 64, 255] },
-    { wavelength = 160.0, color = [64, 200, 255] },
-    { wavelength = 175.0, color = [64, 255, 150] },
-    { wavelength = 190.0, color = [255, 210, 64] },
-    { wavelength = 200.0, color = [255, 120, 64] }
+    { wavelength = 230.0, color = [64, 64, 255] },
+    { wavelength = 250.0, color = [64, 200, 255] },
+    { wavelength = 265.0, color = [64, 255, 150] },
+    { wavelength = 280.0, color = [255, 210, 64] },
+    { wavelength = 300.0, color = [255, 120, 64] }
 ]
-channel_wavelengths = [190.0, 170.0, 160.0]  # [R, G, B] - Using brighter wavelengths
+channel_wavelengths = [280.0, 265.0, 250.0]  # [R, G, B] - UV-C wavelengths
