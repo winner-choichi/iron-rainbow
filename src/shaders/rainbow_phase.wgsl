@@ -333,7 +333,7 @@ fn wavelength_to_color(wavelength: f32) -> vec3<f32> {
     color = pow(color, vec3<f32>(1.0 / 2.2));
 
     // Assume rainbow is at a fixed distance (like atmospheric phenomenon)
-    let rainbow_distance = 30000.0; // Rainbow appears at 30km distance (planetary scale)
+    let rainbow_distance = 3000000.0; // Rainbow appears at 3000km distance (planetary scale)
 
     // Calculate ground intersection
     let ground_t = intersect_plane(params.camera_pos, ray_dir, vec3<f32>(0.0, 1.0, 0.0), 0.0);
