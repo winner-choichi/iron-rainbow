@@ -91,30 +91,31 @@ fn stars(dir: vec3<f32>) -> vec3<f32> {
     return vec3<f32>(0.0);
 }
 
-// Ground surface with planet texture (spherical mapping)
+// Ground surface with high-res local texture mapping
 fn ground_surface(world_pos: vec3<f32>) -> vec3<f32> {
-    // Treat ground as if it's on a sphere surface
-    // Project world position onto imaginary sphere for UV calculation
-    let sphere_center = vec3<f32>(0.0, -100000.0, 0.0); // Large sphere below
-    let sphere_radius = 100000.0;
+    // Map texture to local region around spawn point (origin)
+    // Cover a square region: 50km × 50km centered at origin
+    let texture_coverage = 50000.0; // 50km
 
-    // Vector from sphere center to surface point
-    let to_surface = normalize(world_pos - sphere_center);
-
-    // Spherical coordinates (equirectangular projection)
-    // θ (theta) = longitude (0 to 2π)
-    // φ (phi) = latitude (-π/2 to π/2)
-    let theta = atan2(to_surface.z, to_surface.x); // -π to π
-    let phi = asin(clamp(to_surface.y, -1.0, 1.0)); // -π/2 to π/2
-
-    // Convert to UV coordinates (0 to 1)
-    let u = (theta + PI) / (2.0 * PI); // 0 to 1
-    let v = (phi + PI / 2.0) / PI;      // 0 to 1
+    // Local planar UV mapping (high resolution)
+    let u = (world_pos.x + texture_coverage * 0.5) / texture_coverage;
+    let v = (world_pos.z + texture_coverage * 0.5) / texture_coverage;
 
     let uv = vec2<f32>(u, v);
 
-    // Sample planet texture
-    let tex_color = textureSample(planet_texture, planet_sampler, uv).rgb;
+    // Check if we're inside texture coverage area
+    let in_coverage = u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0;
+
+    var tex_color: vec3<f32>;
+    if (in_coverage) {
+        // High-res texture in local area
+        tex_color = textureSample(planet_texture, planet_sampler, uv).rgb;
+    } else {
+        // Fallback: dark gray for areas beyond texture coverage
+        let base_color = vec3<f32>(0.12, 0.13, 0.15);
+        let noise_val = hash3(vec3<f32>(world_pos.x * 0.001, 0.0, world_pos.z * 0.001));
+        tex_color = base_color * (0.8 + noise_val * 0.4);
+    }
 
     // Distance-based fog
     let dist = length(world_pos - params.camera_pos);
