@@ -581,7 +581,7 @@ impl ViewerState {
             initial_look_at,
             sun_elevation,
             sun_azimuth,
-            exposure_multiplier: 0.01,
+            exposure_multiplier: 0.0001,
             debug_mode: 0,
             march_steps,
             move_speed: 100000.0,
