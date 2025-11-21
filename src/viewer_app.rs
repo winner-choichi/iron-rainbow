@@ -308,6 +308,61 @@ impl ViewerState {
             ..Default::default()
         });
 
+        // Load planet texture
+        let planet_image = image::ImageReader::open("planet_texture.jpg")
+            .map_err(|e| anyhow!("Failed to open planet texture: {e}"))?
+            .decode()
+            .map_err(|e| anyhow!("Failed to decode planet texture: {e}"))?
+            .to_rgba8();
+        let planet_width = planet_image.width();
+        let planet_height = planet_image.height();
+
+        let planet_texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Planet Texture"),
+            size: wgpu::Extent3d {
+                width: planet_width,
+                height: planet_height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+
+        queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &planet_texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            planet_image.as_raw(),
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(planet_width * 4),
+                rows_per_image: Some(planet_height),
+            },
+            wgpu::Extent3d {
+                width: planet_width,
+                height: planet_height,
+                depth_or_array_layers: 1,
+            },
+        );
+
+        let planet_view = planet_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let planet_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Planet Sampler"),
+            address_mode_u: wgpu::AddressMode::Repeat,
+            address_mode_v: wgpu::AddressMode::Repeat,
+            address_mode_w: wgpu::AddressMode::Repeat,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
         let initial_camera_pos = [0.0, 12000.0, 24000.0];
         let initial_look_at = [0.0, 4000.0, 0.0];
         let camera = Camera::new(initial_camera_pos, initial_look_at);
@@ -397,6 +452,22 @@ impl ViewerState {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
             ],
         });
 
@@ -415,6 +486,14 @@ impl ViewerState {
                 wgpu::BindGroupEntry {
                     binding: 2,
                     resource: uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::TextureView(&planet_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::Sampler(&planet_sampler),
                 },
             ],
         });

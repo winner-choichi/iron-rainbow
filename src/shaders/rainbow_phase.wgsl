@@ -38,6 +38,8 @@ struct ViewerUniform {
 @group(0) @binding(0) var lut_texture: texture_2d<f32>;
 @group(0) @binding(1) var lut_sampler: sampler;
 @group(0) @binding(2) var<uniform> params: ViewerUniform;
+@group(0) @binding(3) var planet_texture: texture_2d<f32>;
+@group(0) @binding(4) var planet_sampler: sampler;
 
 const RAD_TO_DEG: f32 = 57.29577951;
 const DEG_TO_RAD: f32 = 0.017453293;
@@ -89,21 +91,20 @@ fn stars(dir: vec3<f32>) -> vec3<f32> {
     return vec3<f32>(0.0);
 }
 
-// Solid ground surface
+// Ground surface with planet texture
 fn ground_surface(world_pos: vec3<f32>) -> vec3<f32> {
-    // Base ground color (dark gray with slight variation)
-    let base_color = vec3<f32>(0.15, 0.16, 0.18);
+    // UV mapping: world coordinates to texture coordinates
+    let uv_scale = 0.00005; // Scale factor for texture tiling (smaller = larger tiles)
+    let uv = vec2<f32>(world_pos.x * uv_scale, world_pos.z * uv_scale);
 
-    // Add subtle texture variation using hash3
-    let noise_scale = 20.0;
-    let noise_val = hash3(vec3<f32>(world_pos.x, 0.0, world_pos.z) * noise_scale);
-    let texture_color = base_color * (0.9 + noise_val * 0.2);
+    // Sample planet texture
+    let tex_color = textureSample(planet_texture, planet_sampler, uv).rgb;
 
-    // Distance-based fog/fade
+    // Distance-based fog
     let dist = length(world_pos - params.camera_pos);
-    let fade = clamp(1.0 - dist / 1000.0, 0.3, 1.0);
+    let fade = clamp(1.0 - dist / 100000.0, 0.3, 1.0);
 
-    return texture_color * fade;
+    return tex_color * fade;
 }
 
 // Sample phase function (LUT) for given scattering angle and wavelength
