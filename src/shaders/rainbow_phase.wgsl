@@ -91,30 +91,39 @@ fn stars(dir: vec3<f32>) -> vec3<f32> {
     return vec3<f32>(0.0);
 }
 
-// Ground surface with high-res local texture mapping
+// Ground surface with spherical hemisphere mapping
 fn ground_surface(world_pos: vec3<f32>) -> vec3<f32> {
-    // Map texture to cover entire planet surface (one hemisphere)
-    // Planet radius = 10km, circumference ≈ 63km
-    // Use 100km × 100km to cover full visible hemisphere comfortably
-    let texture_coverage = 100000.0; // 100km - full planet hemisphere coverage
+    // Spherical coordinates from origin (planet center at origin)
+    // This covers exactly one hemisphere (180° × 180°)
 
-    // Local planar UV mapping (high resolution)
-    let u = (world_pos.x + texture_coverage * 0.5) / texture_coverage;
-    let v = (world_pos.z + texture_coverage * 0.5) / texture_coverage;
+    let to_point = normalize(world_pos);
+
+    // Longitude: -180° to +180° (but we map -90° to +90° for hemisphere)
+    let longitude = atan2(to_point.z, to_point.x); // -π to π
+
+    // Latitude: -90° to +90°
+    let latitude = asin(clamp(to_point.y, -1.0, 1.0)); // -π/2 to π/2
+
+    // Map to UV: we want to cover 180° in both directions
+    // Longitude: -90° to +90° (180° range) → [0, 1]
+    let u = (longitude + PI * 0.5) / PI; // -π/2 to π/2 mapped to [0, 1]
+
+    // Latitude: -90° to +90° (180° range) → [0, 1]
+    let v = (latitude + PI * 0.5) / PI; // -π/2 to π/2 mapped to [0, 1]
 
     let uv = vec2<f32>(u, v);
 
-    // Check if we're inside texture coverage area
+    // Check if we're in the hemisphere we're texturing
     let in_coverage = u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0;
 
     var tex_color: vec3<f32>;
     if (in_coverage) {
-        // High-res texture in local area
+        // Hemisphere texture
         tex_color = textureSample(planet_texture, planet_sampler, uv).rgb;
     } else {
-        // Fallback: dark gray for areas beyond texture coverage
+        // Other hemisphere: dark gray fallback
         let base_color = vec3<f32>(0.12, 0.13, 0.15);
-        let noise_val = hash3(vec3<f32>(world_pos.x * 0.001, 0.0, world_pos.z * 0.001));
+        let noise_val = hash3(to_point * 10.0);
         tex_color = base_color * (0.8 + noise_val * 0.4);
     }
 
