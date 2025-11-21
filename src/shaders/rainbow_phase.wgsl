@@ -91,29 +91,25 @@ fn stars(dir: vec3<f32>) -> vec3<f32> {
     return vec3<f32>(0.0);
 }
 
-// Ground surface with full spherical mapping (entire planet)
+// Ground surface with spherical planet texture mapping
 fn ground_surface(world_pos: vec3<f32>) -> vec3<f32> {
-    // Equirectangular projection covering entire planet sphere
-    // Longitude: 360° (full circle), Latitude: 180° (pole to pole)
+    // Convert world position to spherical coordinates
+    // Assume planet center is at origin (0, 0, 0)
+    let to_surface = normalize(world_pos);
 
-    let to_point = normalize(world_pos);
+    // Spherical UV mapping (equirectangular projection)
+    // theta: longitude (0 to 2π) → U (0 to 1)
+    // phi: latitude (-π/2 to π/2) → V (0 to 1)
+    let theta = atan2(to_surface.z, to_surface.x); // -π to π
+    let phi = asin(clamp(to_surface.y, -1.0, 1.0)); // -π/2 to π/2
 
-    // Longitude: -180° to +180° (full 360° around planet)
-    let longitude = atan2(to_point.z, to_point.x); // -π to π
-
-    // Latitude: -90° to +90° (from south pole to north pole)
-    let latitude = asin(clamp(to_point.y, -1.0, 1.0)); // -π/2 to π/2
-
-    // Map to UV coordinates [0, 1]
-    // Longitude: -180° to +180° (360° range) → [0, 1]
-    let u = (longitude + PI) / (2.0 * PI); // Full circle
-
-    // Latitude: -90° to +90° (180° range) → [0, 1]
-    let v = (latitude + PI * 0.5) / PI;
+    // Map to UV coordinates
+    let u = (theta / (2.0 * PI)) + 0.5; // 0 to 1
+    let v = (phi / PI) + 0.5; // 0 to 1
 
     let uv = vec2<f32>(u, v);
 
-    // Sample texture (covers entire planet surface)
+    // Sample planet texture
     let tex_color = textureSample(planet_texture, planet_sampler, uv).rgb;
 
     // Distance-based fog
