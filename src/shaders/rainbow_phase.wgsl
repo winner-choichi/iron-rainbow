@@ -93,9 +93,10 @@ fn stars(dir: vec3<f32>) -> vec3<f32> {
 
 // Ground surface with high-res local texture mapping
 fn ground_surface(world_pos: vec3<f32>) -> vec3<f32> {
-    // Map texture to local region around spawn point (origin)
-    // Cover hemisphere: 200km × 200km centered at origin (planet radius = 10km)
-    let texture_coverage = 200000.0; // 200km - covers full hemisphere and beyond
+    // Map texture to cover entire planet surface (one hemisphere)
+    // Planet radius = 10km, circumference ≈ 63km
+    // Use 100km × 100km to cover full visible hemisphere comfortably
+    let texture_coverage = 100000.0; // 100km - full planet hemisphere coverage
 
     // Local planar UV mapping (high resolution)
     let u = (world_pos.x + texture_coverage * 0.5) / texture_coverage;
