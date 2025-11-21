@@ -91,41 +91,30 @@ fn stars(dir: vec3<f32>) -> vec3<f32> {
     return vec3<f32>(0.0);
 }
 
-// Ground surface with spherical hemisphere mapping
+// Ground surface with full spherical mapping (entire planet)
 fn ground_surface(world_pos: vec3<f32>) -> vec3<f32> {
-    // Spherical coordinates from origin (planet center at origin)
-    // This covers exactly one hemisphere (180° × 180°)
+    // Equirectangular projection covering entire planet sphere
+    // Longitude: 360° (full circle), Latitude: 180° (pole to pole)
 
     let to_point = normalize(world_pos);
 
-    // Longitude: -180° to +180° (but we map -90° to +90° for hemisphere)
+    // Longitude: -180° to +180° (full 360° around planet)
     let longitude = atan2(to_point.z, to_point.x); // -π to π
 
-    // Latitude: -90° to +90°
+    // Latitude: -90° to +90° (from south pole to north pole)
     let latitude = asin(clamp(to_point.y, -1.0, 1.0)); // -π/2 to π/2
 
-    // Map to UV: we want to cover 180° in both directions
-    // Longitude: -90° to +90° (180° range) → [0, 1]
-    let u = (longitude + PI * 0.5) / PI; // -π/2 to π/2 mapped to [0, 1]
+    // Map to UV coordinates [0, 1]
+    // Longitude: -180° to +180° (360° range) → [0, 1]
+    let u = (longitude + PI) / (2.0 * PI); // Full circle
 
     // Latitude: -90° to +90° (180° range) → [0, 1]
-    let v = (latitude + PI * 0.5) / PI; // -π/2 to π/2 mapped to [0, 1]
+    let v = (latitude + PI * 0.5) / PI;
 
     let uv = vec2<f32>(u, v);
 
-    // Check if we're in the hemisphere we're texturing
-    let in_coverage = u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0;
-
-    var tex_color: vec3<f32>;
-    if (in_coverage) {
-        // Hemisphere texture
-        tex_color = textureSample(planet_texture, planet_sampler, uv).rgb;
-    } else {
-        // Other hemisphere: dark gray fallback
-        let base_color = vec3<f32>(0.12, 0.13, 0.15);
-        let noise_val = hash3(to_point * 10.0);
-        tex_color = base_color * (0.8 + noise_val * 0.4);
-    }
+    // Sample texture (covers entire planet surface)
+    let tex_color = textureSample(planet_texture, planet_sampler, uv).rgb;
 
     // Distance-based fog
     let dist = length(world_pos - params.camera_pos);

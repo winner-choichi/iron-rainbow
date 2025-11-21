@@ -355,8 +355,8 @@ impl ViewerState {
         let planet_view = planet_texture.create_view(&wgpu::TextureViewDescriptor::default());
         let planet_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Planet Sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge, // Local planar mapping
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_u: wgpu::AddressMode::Repeat, // Wrap around longitude (360°)
+            address_mode_v: wgpu::AddressMode::ClampToEdge, // Clamp at poles
             address_mode_w: wgpu::AddressMode::ClampToEdge,
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
