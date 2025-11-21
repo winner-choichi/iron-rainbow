@@ -91,11 +91,27 @@ fn stars(dir: vec3<f32>) -> vec3<f32> {
     return vec3<f32>(0.0);
 }
 
-// Ground surface with planet texture
+// Ground surface with planet texture (spherical mapping)
 fn ground_surface(world_pos: vec3<f32>) -> vec3<f32> {
-    // UV mapping: world coordinates to texture coordinates
-    let uv_scale = 0.00005; // Scale factor for texture tiling (smaller = larger tiles)
-    let uv = vec2<f32>(world_pos.x * uv_scale, world_pos.z * uv_scale);
+    // Treat ground as if it's on a sphere surface
+    // Project world position onto imaginary sphere for UV calculation
+    let sphere_center = vec3<f32>(0.0, -100000.0, 0.0); // Large sphere below
+    let sphere_radius = 100000.0;
+
+    // Vector from sphere center to surface point
+    let to_surface = normalize(world_pos - sphere_center);
+
+    // Spherical coordinates (equirectangular projection)
+    // θ (theta) = longitude (0 to 2π)
+    // φ (phi) = latitude (-π/2 to π/2)
+    let theta = atan2(to_surface.z, to_surface.x); // -π to π
+    let phi = asin(clamp(to_surface.y, -1.0, 1.0)); // -π/2 to π/2
+
+    // Convert to UV coordinates (0 to 1)
+    let u = (theta + PI) / (2.0 * PI); // 0 to 1
+    let v = (phi + PI / 2.0) / PI;      // 0 to 1
+
+    let uv = vec2<f32>(u, v);
 
     // Sample planet texture
     let tex_color = textureSample(planet_texture, planet_sampler, uv).rgb;
