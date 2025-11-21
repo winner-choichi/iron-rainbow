@@ -776,7 +776,7 @@ pub fn run(config_override: Option<&str>) -> Result<()> {
     let event_loop = EventLoop::new()?;
     let window = WindowBuilder::new()
         .with_title("Iron Rainbow 3D Viewer")
-        .with_inner_size(PhysicalSize::new(1280, 720))
+        .with_inner_size(PhysicalSize::new(2560, 1440))
         .build(&event_loop)?;
 
     let mut state = pollster::block_on(ViewerState::new(window, config_path))?;
