@@ -355,9 +355,9 @@ impl ViewerState {
         let planet_view = planet_texture.create_view(&wgpu::TextureViewDescriptor::default());
         let planet_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Planet Sampler"),
-            address_mode_u: wgpu::AddressMode::Repeat, // Wrap around longitude
-            address_mode_v: wgpu::AddressMode::ClampToEdge, // Clamp at poles
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            address_mode_u: wgpu::AddressMode::Repeat,
+            address_mode_v: wgpu::AddressMode::Repeat,
+            address_mode_w: wgpu::AddressMode::Repeat,
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
             ..Default::default()
@@ -368,7 +368,7 @@ impl ViewerState {
         let camera = Camera::new(initial_camera_pos, initial_look_at);
 
         // Initialize sun (45 degrees elevation, 135 degrees azimuth)
-        let sun_elevation = 45.0;
+        let sun_elevation = 5.0;
         let sun_azimuth = 135.0;
 
         // No particle cloud needed - phase function approach!

@@ -91,16 +91,11 @@ fn stars(dir: vec3<f32>) -> vec3<f32> {
     return vec3<f32>(0.0);
 }
 
-// Ground surface with planar texture mapping
+// Ground surface with planet texture
 fn ground_surface(world_pos: vec3<f32>) -> vec3<f32> {
-    // Simple planar UV mapping for ground plane
-    // Map world XZ coordinates directly to UV
-
-    let uv_scale = 0.00005; // Scale factor for texture size
-    let uv = vec2<f32>(
-        fract(world_pos.x * uv_scale),
-        fract(world_pos.z * uv_scale)
-    );
+    // UV mapping: world coordinates to texture coordinates
+    let uv_scale = 0.000005; // Scale factor for texture tiling (smaller = larger tiles)
+    let uv = vec2<f32>(world_pos.x * uv_scale, world_pos.z * uv_scale);
 
     // Sample planet texture
     let tex_color = textureSample(planet_texture, planet_sampler, uv).rgb;
