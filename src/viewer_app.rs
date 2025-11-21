@@ -217,7 +217,7 @@ impl ViewerState {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: Some("Viewer Device"),
-                    required_features: wgpu::Features::empty(),
+                    required_features: wgpu::Features::TEXTURE_FORMAT_16BIT_NORM,
                     required_limits: wgpu::Limits::downlevel_defaults(),
                     memory_hints: wgpu::MemoryHints::Performance,
                 },
@@ -259,9 +259,9 @@ impl ViewerState {
             .to_luma16();
         let lut_width = lut_image.width();
         let lut_height = lut_image.height();
-        let mut lut_bytes = Vec::with_capacity((lut_width as usize) * (lut_height as usize));
+        let mut lut_bytes = Vec::with_capacity((lut_width as usize) * (lut_height as usize) * 2);
         for value in lut_image.as_raw() {
-            lut_bytes.push((value >> 8) as u8);
+            lut_bytes.extend_from_slice(&value.to_le_bytes());
         }
 
         let texture_size = wgpu::Extent3d {
@@ -276,7 +276,7 @@ impl ViewerState {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::R8Unorm,
+            format: wgpu::TextureFormat::R16Unorm,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -291,7 +291,7 @@ impl ViewerState {
             &lut_bytes,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(lut_width),
+                bytes_per_row: Some(lut_width * 2),
                 rows_per_image: Some(lut_height),
             },
             texture_size,
@@ -308,8 +308,8 @@ impl ViewerState {
             ..Default::default()
         });
 
-        let initial_camera_pos = [0.0, 120.0, 200.0];
-        let initial_look_at = [0.0, 20.0, 0.0];
+        let initial_camera_pos = [0.0, 12000.0, 24000.0];
+        let initial_look_at = [0.0, 4000.0, 0.0];
         let camera = Camera::new(initial_camera_pos, initial_look_at);
 
         // Initialize sun (45 degrees elevation, 135 degrees azimuth)
@@ -337,7 +337,7 @@ impl ViewerState {
             sun_dir: sun_direction(sun_elevation, sun_azimuth),
             _pad4: 0.0,
             droplet_center: [0.0, 0.0, 0.0],
-            droplet_radius: 100.0,
+            droplet_radius: 10000.0,
             viewport_width: size.width as f32,
             viewport_height: size.height as f32,
             fov: camera.fov,
@@ -469,7 +469,7 @@ impl ViewerState {
             "Angle: {:.0}°-{:.0}°",
             metadata.angle_min_deg, metadata.angle_max_deg
         );
-        println!("Droplet Radius: 100m (visualization scale)");
+        println!("Droplet Radius: 10,000m (visualization scale)");
         println!("\n=== Orbit Camera Controls ===");
         println!("  Mouse Drag - Rotate around droplet");
         println!("  W/S        - Pan up/down");
@@ -505,7 +505,7 @@ impl ViewerState {
             exposure_multiplier: 1.0,
             debug_mode: 0,
             march_steps,
-            move_speed: 10.0,
+            move_speed: 1000.0,
             mouse_sensitivity: 0.002,
             keys_pressed: std::collections::HashSet::new(),
             metadata,

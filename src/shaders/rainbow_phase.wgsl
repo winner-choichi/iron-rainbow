@@ -132,6 +132,49 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
     return intensity;
 }
 
+// Map wavelength to RGB color using false_color gradient
+fn wavelength_to_color(wavelength: f32) -> vec3<f32> {
+    if (params.false_color_count == 0u) {
+        return vec3<f32>(1.0);
+    }
+    
+    if (params.false_color_count == 1u) {
+        return params.false_color_data[0].yzw;
+    }
+    
+    // Find the two stops that bracket this wavelength
+    var lower_idx = 0u;
+    var upper_idx = 1u;
+    
+    // If below first stop, extrapolate from first two stops
+    if (wavelength <= params.false_color_data[0].x) {
+        lower_idx = 0u;
+        upper_idx = 1u;
+    }
+    // If above last stop, extrapolate from last two stops
+    else if (wavelength >= params.false_color_data[params.false_color_count - 1u].x) {
+        lower_idx = params.false_color_count - 2u;
+        upper_idx = params.false_color_count - 1u;
+    }
+    // Find bracketing stops
+    else {
+        for (var i = 0u; i < params.false_color_count - 1u; i = i + 1u) {
+            if (params.false_color_data[i].x <= wavelength && wavelength <= params.false_color_data[i + 1u].x) {
+                lower_idx = i;
+                upper_idx = i + 1u;
+                break;
+            }
+        }
+    }
+    
+    let lower_stop = params.false_color_data[lower_idx];
+    let upper_stop = params.false_color_data[upper_idx];
+    
+    // Linear interpolation (or extrapolation)
+    let t = (wavelength - lower_stop.x) / (upper_stop.x - lower_stop.x);
+    return mix(lower_stop.yzw, upper_stop.yzw, t);
+}
+
 @vertex fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f32> {
     // Fullscreen triangle
     let x = f32((vertex_index & 1u) << 2u) - 1.0;
@@ -227,60 +270,91 @@ fn sample_phase_function(theta_deg: f32, wavelength: f32) -> f32 {
     if (params.debug_mode == 3u) {
         return vec4<f32>(0.0, 0.0, intensity_b, 1.0) * params.exposure;
     }
+    
+    // Debug mode 4: Show spectral integration raw output
+    if (params.debug_mode == 4u) {
+        var debug_color = vec3<f32>(0.0);
+        if (params.false_color_count > 0u) {
+            let num_samples = 32u;
+            for (var i = 0u; i < num_samples; i = i + 1u) {
+                let t = (f32(i) + 0.5) / f32(num_samples);
+                let wavelength = params.wavelength_min + t * params.wavelength_range;
+                let intensity = sample_phase_function(lut_angle, wavelength);
+                let wl_color = wavelength_to_color(wavelength);
+                debug_color += intensity * wl_color;
+            }
+        }
+        return vec4<f32>(debug_color * params.exposure, 1.0);
+    }
 
-    // Normal rendering
-    var color = vec3<f32>(intensity_r, intensity_g, intensity_b);
+
+    // Spectral integration rendering
+    var color = vec3<f32>(0.0);
 
     if (params.false_color_count > 0u) {
-        color = vec3<f32>(0.0);
-        var i: u32 = 0u;
-        loop {
-            if (i >= params.false_color_count) {
-                break;
-            }
-            let stop = params.false_color_data[i];
-            let intensity = sample_phase_function(lut_angle, stop.x);
-            color += intensity * stop.yzw;
-            i = i + 1u;
+        // Render with smooth spectral integration (32 samples)
+        let num_samples = 32u;
+        
+        for (var i = 0u; i < num_samples; i = i + 1u) {
+            let t = (f32(i) + 0.5) / f32(num_samples);
+            let wavelength = params.wavelength_min + t * params.wavelength_range;
+            let intensity = sample_phase_function(lut_angle, wavelength);
+            let wl_color = wavelength_to_color(wavelength);
+            color += intensity * wl_color;
         }
+    } else {
+        // Fallback to RGB channels if no false color defined
+        color = vec3<f32>(intensity_r, intensity_g, intensity_b);
     }
 
     // Apply exposure
     color *= params.exposure;
+    
+    // Angle-based fade-out on both sides
+    let fade_start_angle = 25.0;  // Inner fade (center)
+    let fade_end_angle = 50.0;    // Outer fade (edge)
+    var angle_factor = 1.0;
+    
+    if (lut_angle < fade_start_angle) {
+        // Exponential fade from 25° down to 0° (center fade-in)
+        let normalized_angle = lut_angle / fade_start_angle;
+        angle_factor = pow(normalized_angle, 8.0);
+    } else if (lut_angle > fade_end_angle) {
+        // Exponential fade from 80° up to higher angles (edge fade-out)
+        // At 80°: factor = 1.0, at 180°: factor ≈ 0.0
+        let fade_range = 180.0 - fade_end_angle;
+        let normalized_angle = (180.0 - lut_angle) / fade_range;
+        angle_factor = pow(clamp(normalized_angle, 0.0, 1.0), 8.0);
+    }
+    
+    color *= angle_factor;
 
     // Gamma correction
     color = pow(color, vec3<f32>(1.0 / 2.2));
 
-    // Check if this pixel has rainbow
-    let has_rainbow = length(color) > 0.001;
-
     // Assume rainbow is at a fixed distance (like atmospheric phenomenon)
-    let rainbow_distance = 300.0; // Rainbow appears ~300m away
+    let rainbow_distance = 300.0; // Rainbow appears at 300m distance (in droplet sphere)
 
     // Calculate ground intersection
     let ground_t = intersect_plane(params.camera_pos, ray_dir, vec3<f32>(0.0, 1.0, 0.0), 0.0);
-    let ground_visible = ground_t > 0.0 && ground_t < 2000.0;
+    let ground_visible = ground_t > 0.0 && ground_t < 500000.0;
     let ground_occludes_rainbow = ground_visible && ground_t < rainbow_distance;
 
-    // Background rendering with proper depth ordering
+    // Start with background (stars or ground)
     var bg_color = stars(ray_dir);
-    var final_color: vec3<f32>;
-
-    if (ground_occludes_rainbow) {
-        // Ground is closer than rainbow - ground blocks rainbow
+    if (ground_visible) {
         let world_hit = params.camera_pos + ray_dir * ground_t;
-        final_color = ground_surface(world_hit);
-    } else if (has_rainbow) {
-        // Rainbow is visible - show with dimmed stars behind
-        bg_color *= 0.3;
-        final_color = color + bg_color;
-    } else {
-        // No rainbow - show ground or stars
-        if (ground_visible) {
-            let world_hit = params.camera_pos + ray_dir * ground_t;
-            bg_color = ground_surface(world_hit);
-        }
+        bg_color = ground_surface(world_hit);
+    }
+
+    // Additive blending: rainbow light is added on top of background
+    var final_color: vec3<f32>;
+    if (ground_occludes_rainbow) {
+        // Ground blocks rainbow - only show ground
         final_color = bg_color;
+    } else {
+        // Rainbow + dimmed background (30% stars/ground when rainbow visible)
+        final_color = bg_color * 0.3 + color;
     }
 
     return vec4<f32>(final_color, 1.0);

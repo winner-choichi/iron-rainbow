@@ -18,7 +18,7 @@ angle_supersample = 4
 
 [intensity]
 normalize_mode = "global"   # options: per_wavelength, global
-exposure = 1.0  # Normalized to [0, 1] range (viewer controls final exposure)
+exposure = 0.01  # Normalized to [0, 1] range (viewer controls final exposure)
 
 [droplet]
 radius_um = 0.03
@@ -39,9 +39,9 @@ format = "png16"   # options: png8, png16, hdr
 
 [renderer]
 false_color = [
-    { wavelength = 275.0, color = [64, 150, 255] },   # Blue-cyan (short UV)
-    { wavelength = 282.5, color = [64, 255, 150] },   # Green
-    { wavelength = 290.0, color = [255, 210, 64] },   # Yellow
-    { wavelength = 300.0, color = [255, 120, 64] }    # Orange (long UV)
+    { wavelength = 230.0, color = [80, 80, 255] },     # Deep blue (shortest UV)
+    { wavelength = 253.3, color = [64, 200, 255] },    # Cyan-blue
+    { wavelength = 276.7, color = [100, 255, 100] },   # Green
+    { wavelength = 300.0, color = [255, 100, 80] }     # Red-orange (longest UV)
 ]
 channel_wavelengths = [295.0, 287.5, 280.0]  # [R, G, B] - 275-300nm range only
